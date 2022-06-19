@@ -20,7 +20,6 @@ type app struct {
 
 // GetURL возвращает в ответе реальный url
 func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
-	//w.Write([]byte("hello"))
 	s := chi.URLParam(r, "id")
 
 	long, err := app.db.Read(s)
@@ -29,9 +28,9 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusTemporaryRedirect)
 	w.Header().Set("Location", long)
-	_, err = w.Write([]byte(long))
+	w.WriteHeader(http.StatusTemporaryRedirect)
+	//_, err = w.Write([]byte(long))
 	if err != nil {
 		fmt.Println(err)
 	}
