@@ -1,7 +1,9 @@
 package app
 
 import (
+	"cmd/shortener/main.go/internal/model"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -67,12 +69,55 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Shorten обработка запроса и формирование ответа в json
+func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	defer func() {
+		_ = r.Body.Close()
+	}()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var data model.ShortenerRequest
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	key := app.convertUrlToKey([]byte(data.URL))
+	err = app.db.Write(key, data.URL)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	short := url.URL{
+		Scheme: "http",
+		Host:   r.Host,
+		Path:   key,
+	}
+
+	resp := model.ShortenerResponse{Result: short.String()}
+	respJSON, err := json.Marshal(resp)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(respJSON)
+}
+
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
 
 	router.Post("/", app.AddURL)
 	router.Get("/{id}", app.GetURL)
+	router.Post("/api/shorten", app.Shorten)
 
 	return http.ListenAndServe(":8080", router)
 }
