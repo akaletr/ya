@@ -1,14 +1,16 @@
 package app
 
 import (
-	"cmd/shortener/main.go/internal/storage"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"cmd/shortener/main.go/internal/storage"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNew(t *testing.T) {

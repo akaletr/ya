@@ -1,8 +1,9 @@
 package main
 
 import (
-	"cmd/shortener/main.go/internal/app"
 	"log"
+
+	"cmd/shortener/main.go/internal/app"
 )
 
 func main() {

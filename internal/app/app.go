@@ -1,15 +1,17 @@
 package app
 
 import (
-	"cmd/shortener/main.go/internal/storage"
 	"encoding/base64"
 	"fmt"
-	"github.com/go-chi/chi/v5"
 	"hash/crc32"
 	"io"
 	"math/big"
 	"net/http"
 	"net/url"
+
+	"cmd/shortener/main.go/internal/storage"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type app struct {
