@@ -134,7 +134,7 @@ func (app *app) Start() error {
 		Handler: router,
 	}
 
-	e := os.Getenv("server_address")
+	e := os.Getenv("server_host")
 	if e != "" {
 		server.Addr = fmt.Sprintf(":%s", e)
 	}
