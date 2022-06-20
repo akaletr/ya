@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"os"
 
 	"cmd/shortener/main.go/internal/model"
 	"cmd/shortener/main.go/internal/storage"
@@ -133,8 +134,9 @@ func (app *app) Start() error {
 		Handler: router,
 	}
 
-	if cfg.ServerAddress != "" {
-		server.Addr = cfg.ServerAddress
+	e := os.Getenv("server_address")
+	if e != "" {
+		server.Addr = fmt.Sprintf(":%s", e)
 	}
 
 	return server.ListenAndServe()
@@ -156,6 +158,6 @@ func New() App {
 }
 
 type Config struct {
-	ServerAddress string `env:"SERVER_ADDRESS,omitempty"`
-	BaseURL       string `env:"BASE_URL,omitempty"`
+	ServerAddress string `env:"SERVER_ADDRESS"`
+	BaseURL       string `env:"BASE_URL"`
 }
