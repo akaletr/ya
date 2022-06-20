@@ -141,9 +141,10 @@ func (app *app) Start() error {
 	}
 
 	address := os.Getenv("SERVER_ADDRESS")
-	port := strings.Split(address, ":")[1]
+	strs := strings.Split(address, ":")
 
-	if port != "" {
+	if len(strs) == 1 {
+		port := strs[1]
 		server.Addr = fmt.Sprintf(":%s", port)
 	}
 
