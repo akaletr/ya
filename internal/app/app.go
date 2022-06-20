@@ -1,23 +1,26 @@
 package app
 
 import (
-	"cmd/shortener/main.go/internal/model"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
 	"io"
+	"log"
 	"math/big"
 	"net/http"
 	"net/url"
 
+	"cmd/shortener/main.go/internal/model"
 	"cmd/shortener/main.go/internal/storage"
 
+	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 )
 
 type app struct {
-	db storage.Storage
+	db  storage.Storage
+	cfg Config
 }
 
 // GetURL возвращает в ответе реальный url
@@ -119,7 +122,22 @@ func (app *app) Start() error {
 	router.Get("/{id}", app.GetURL)
 	router.Post("/api/shorten", app.Shorten)
 
-	return http.ListenAndServe(":8080", router)
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	server := http.Server{
+		Addr:    ":8080",
+		Handler: router,
+	}
+
+	if cfg.ServerAddress != "" {
+		server.Addr = cfg.ServerAddress
+	}
+
+	return server.ListenAndServe()
 }
 
 // convertUrlToKey возвращает уникальный идентификатор для строки
@@ -131,7 +149,13 @@ func (app *app) convertUrlToKey(url []byte) string {
 
 // New возвращает новый экземпляр приложения
 func New() App {
+
 	return &app{
 		db: storage.New(),
 	}
+}
+
+type Config struct {
+	ServerAddress string `env:"SERVER_ADDRESS,omitempty"`
+	BaseURL       string `env:"BASE_URL,omitempty"`
 }
