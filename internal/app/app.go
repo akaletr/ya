@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"cmd/shortener/main.go/internal/model"
 	"cmd/shortener/main.go/internal/storage"
@@ -139,9 +140,11 @@ func (app *app) Start() error {
 		Handler: router,
 	}
 
-	port := os.Getenv("SERVER_PORT")
+	address := os.Getenv("SERVER_ADDRESS")
+	port := strings.Split(address, ":")[1]
+
 	if port != "" {
-		server.Addr = fmt.Sprintf("%s", port)
+		server.Addr = fmt.Sprintf(":%s", port)
 	}
 
 	return server.ListenAndServe()
