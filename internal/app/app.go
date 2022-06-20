@@ -106,7 +106,6 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(respJSON)
@@ -118,7 +117,7 @@ func (app *app) Start() error {
 
 	router.Post("/", app.AddURL)
 	router.Get("/{id}", app.GetURL)
-	router.Post("/api/shorten/", app.Shorten)
+	router.Post("/api/shorten", app.Shorten)
 
 	return http.ListenAndServe(":8080", router)
 }
