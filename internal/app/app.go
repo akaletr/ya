@@ -104,6 +104,11 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		Path:   key,
 	}
 
+	host := os.Getenv("SERVER_HOST")
+	if host != "" {
+		short.Host = host
+	}
+
 	resp := model.ShortenerResponse{Result: short.String()}
 	respJSON, err := json.Marshal(resp)
 	if err != nil {
@@ -134,9 +139,9 @@ func (app *app) Start() error {
 		Handler: router,
 	}
 
-	e := os.Getenv("SERVER_HOST")
-	if e != "" {
-		server.Addr = fmt.Sprintf(":%s", e)
+	port := os.Getenv("SERVER_HOST")
+	if port != "" {
+		server.Addr = fmt.Sprintf(":%s", port)
 	}
 
 	return server.ListenAndServe()
