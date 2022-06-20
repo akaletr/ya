@@ -139,9 +139,9 @@ func (app *app) Start() error {
 		Handler: router,
 	}
 
-	port := os.Getenv("SERVER_ADDRESS")
+	port := os.Getenv("SERVER_PORT")
 	if port != "" {
-		server.Addr = fmt.Sprintf(":%s", port)
+		server.Addr = fmt.Sprintf("%s", port)
 	}
 
 	return server.ListenAndServe()
