@@ -107,7 +107,8 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 
 	host := os.Getenv("BASE_URL")
 	if host != "" {
-		short.Host = host
+		short.Scheme = strings.Split(host, "://")[0]
+		short.Host = strings.Split(host, "://")[1]
 	}
 
 	resp := model.ShortenerResponse{Result: short.String()}
@@ -143,7 +144,7 @@ func (app *app) Start() error {
 	address := os.Getenv("SERVER_ADDRESS")
 	strs := strings.Split(address, ":")
 
-	if len(strs) == 1 {
+	if len(strs) == 2 {
 		port := strs[1]
 		server.Addr = fmt.Sprintf(":%s", port)
 	}
