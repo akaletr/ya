@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
@@ -56,7 +57,11 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
-	long, err := io.ReadAll(r.Body)
+	var buf bytes.Buffer
+	body := io.TeeReader(r.Body, &buf)
+
+	long, err := io.ReadAll(body)
+
 	defer func() {
 		_ = r.Body.Close()
 	}()
@@ -66,7 +71,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("Content-Encoding") == "gzip" {
-		long, err = utils.Decompress(r.Body)
+		long, err = utils.Decompress(body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
