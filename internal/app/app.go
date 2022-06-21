@@ -170,6 +170,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Encoding", "gzip")
 		w.WriteHeader(http.StatusCreated)
 		w.Write(respJSON)
