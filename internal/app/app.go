@@ -34,13 +34,13 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.WriteHeader(http.StatusTemporaryRedirect)
 	w.Header().Set("Location", long)
+	//w.WriteHeader(http.StatusTemporaryRedirect)
 	fmt.Println("99999", long)
-	//_, err = w.Write([]byte(long))
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
+	_, err = w.Write([]byte(long))
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
