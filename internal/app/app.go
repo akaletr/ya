@@ -21,6 +21,16 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+var (
+	baseURL, serverAddress, p string
+)
+
+func init() {
+	flag.StringVar(&baseURL, "b", "", "base url")
+	flag.StringVar(&serverAddress, "a", "", "host to listen on")
+	flag.StringVar(&p, "f", "", "file path")
+}
+
 type app struct {
 	db  storage.Storage
 	cfg Config
@@ -107,8 +117,6 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 
 	host := os.Getenv("BASE_URL")
 
-	var baseURL string
-	flag.StringVar(&baseURL, "b", "", "base url")
 	flag.Parse()
 
 	if baseURL != "" {
@@ -152,9 +160,6 @@ func (app *app) Start() error {
 
 	address := os.Getenv("SERVER_ADDRESS")
 
-	var serverAddress string
-
-	flag.StringVar(&serverAddress, "a", "", "host to listen on")
 	flag.Parse()
 
 	if serverAddress != "" {
@@ -179,8 +184,7 @@ func (app *app) convertURLToKey(url []byte) string {
 
 // New возвращает новый экземпляр приложения
 func New() App {
-	var p string
-	flag.StringVar(&p, "f", "", "file path")
+
 	flag.Parse()
 
 	if p != "" {
