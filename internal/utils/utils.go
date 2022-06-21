@@ -33,13 +33,10 @@ func Compress(data []byte) ([]byte, error) {
 
 // Decompress распаковывает слайс байт.
 func Decompress(data io.Reader) ([]byte, error) {
-	// переменная r будет читать входящие данные и распаковывать их
-	//r := flate.NewReader(bytes.NewReader(data))
 	r, err := gzip.NewReader(data)
 	defer r.Close()
 
 	var b bytes.Buffer
-	// в переменную b записываются распакованные данные
 	_, err = b.ReadFrom(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed decompress data: %v", err)
