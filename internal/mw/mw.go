@@ -1,7 +1,9 @@
 package mw
 
 import (
+	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -19,6 +21,23 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func GzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				fmt.Println(err)
+			}
+			reader := bytes.NewReader(body)
+			gzreader, err := gzip.NewReader(reader)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			o, _ := io.ReadAll(gzreader)
+			output := strings.NewReader(string(o))
+			oc := io.NopCloser(output)
+			r.Body = oc
+		}
+
 		// проверяем, что клиент поддерживает gzip-сжатие
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			// если gzip не поддерживается, передаём управление
