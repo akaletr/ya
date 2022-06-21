@@ -30,7 +30,7 @@ func Decompress(data io.Reader) ([]byte, error) {
 
 	var b bytes.Buffer
 	_, err = b.ReadFrom(r)
-	if err != nil && err != io.EOF {
+	if err != nil {
 		return nil, fmt.Errorf("failed decompress data: %v", err)
 	}
 

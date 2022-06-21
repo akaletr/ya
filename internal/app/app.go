@@ -1,7 +1,7 @@
 package app
 
 import (
-	"bytes"
+	"cmd/shortener/main.go/internal/mw"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
@@ -17,8 +17,6 @@ import (
 
 	"cmd/shortener/main.go/internal/model"
 	"cmd/shortener/main.go/internal/storage"
-	"cmd/shortener/main.go/internal/utils"
-
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 )
@@ -57,10 +55,10 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
-	var buf bytes.Buffer
-	body := io.TeeReader(r.Body, &buf)
+	//var buf bytes.Buffer
+	//body := io.TeeReader(r.Body, &buf)
 
-	long, err := io.ReadAll(body)
+	long, err := io.ReadAll(r.Body)
 
 	defer func() {
 		_ = r.Body.Close()
@@ -70,13 +68,15 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("Content-Encoding") == "gzip" {
-		long, err = utils.Decompress(body)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}
+	//if r.Header.Get("Content-Encoding") == "gzip" {
+	//	longReader := bytes.NewBuffer(long)
+	//	long, err = utils.Decompress(longReader)
+	//	fmt.Println(err)
+	//	if err != nil {
+	//		w.WriteHeader(http.StatusInternalServerError)
+	//		return
+	//	}
+	//}
 
 	key := app.convertURLToKey(long)
 	err = app.db.Write(key, string(long))
@@ -91,18 +91,18 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		Path:   key,
 	}
 
-	if r.Header.Get("Accept-Encoding") == "gzip" {
-		shortURL, err := utils.Compress([]byte(short.String()))
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Content-Type", "application/x-gzip")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(shortURL)
-		return
-	}
+	//if r.Header.Get("Accept-Encoding") == "gzip" {
+	//	shortURL, err := utils.Compress([]byte(short.String()))
+	//	if err != nil {
+	//		w.WriteHeader(http.StatusInternalServerError)
+	//		return
+	//	}
+	//	w.Header().Set("Content-Encoding", "gzip")
+	//	w.Header().Set("Content-Type", "application/x-gzip")
+	//	w.WriteHeader(http.StatusCreated)
+	//	w.Write(shortURL)
+	//	return
+	//}
 
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(short.String()))
@@ -121,13 +121,13 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if r.Header.Get("Content-Encoding") == "gzip" {
-		body, err = utils.Decompress(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}
+	//if r.Header.Get("Content-Encoding") == "gzip" {
+	//	body, err = utils.Decompress(r.Body)
+	//	if err != nil {
+	//		w.WriteHeader(http.StatusInternalServerError)
+	//		return
+	//	}
+	//}
 
 	var data model.ShortenerRequest
 	err = json.Unmarshal(body, &data)
@@ -168,19 +168,19 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	if r.Header.Get("Accept-Encoding") == "gzip" {
-		respJSON, err = utils.Compress(respJSON)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Content-Encoding", "gzip")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(respJSON)
-		return
-	}
+	//
+	//if r.Header.Get("Accept-Encoding") == "gzip" {
+	//	respJSON, err = utils.Compress(respJSON)
+	//	if err != nil {
+	//		w.WriteHeader(http.StatusInternalServerError)
+	//		return
+	//	}
+	//	w.Header().Set("Content-Type", "application/json")
+	//	w.Header().Set("Content-Encoding", "gzip")
+	//	w.WriteHeader(http.StatusCreated)
+	//	w.Write(respJSON)
+	//	return
+	//}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -190,7 +190,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
-
+	router.Use(mw.GzipHandle)
 	router.Post("/", app.AddURL)
 	router.Get("/{id}", app.GetURL)
 	router.Post("/api/shorten", app.Shorten)
