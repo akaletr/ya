@@ -68,16 +68,6 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//if r.Header.Get("Content-Encoding") == "gzip" {
-	//	longReader := bytes.NewBuffer(long)
-	//	long, err = utils.Decompress(longReader)
-	//	fmt.Println(err)
-	//	if err != nil {
-	//		w.WriteHeader(http.StatusInternalServerError)
-	//		return
-	//	}
-	//}
-
 	key := app.convertURLToKey(long)
 	err = app.db.Write(key, string(long))
 	if err != nil {
@@ -90,19 +80,6 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		Host:   r.Host,
 		Path:   key,
 	}
-
-	//if r.Header.Get("Accept-Encoding") == "gzip" {
-	//	shortURL, err := utils.Compress([]byte(short.String()))
-	//	if err != nil {
-	//		w.WriteHeader(http.StatusInternalServerError)
-	//		return
-	//	}
-	//	w.Header().Set("Content-Encoding", "gzip")
-	//	w.Header().Set("Content-Type", "application/x-gzip")
-	//	w.WriteHeader(http.StatusCreated)
-	//	w.Write(shortURL)
-	//	return
-	//}
 
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(short.String()))
@@ -121,13 +98,6 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	//if r.Header.Get("Content-Encoding") == "gzip" {
-	//	body, err = utils.Decompress(r.Body)
-	//	if err != nil {
-	//		w.WriteHeader(http.StatusInternalServerError)
-	//		return
-	//	}
-	//}
 
 	var data model.ShortenerRequest
 	err = json.Unmarshal(body, &data)
@@ -168,19 +138,6 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	//
-	//if r.Header.Get("Accept-Encoding") == "gzip" {
-	//	respJSON, err = utils.Compress(respJSON)
-	//	if err != nil {
-	//		w.WriteHeader(http.StatusInternalServerError)
-	//		return
-	//	}
-	//	w.Header().Set("Content-Type", "application/json")
-	//	w.Header().Set("Content-Encoding", "gzip")
-	//	w.WriteHeader(http.StatusCreated)
-	//	w.Write(respJSON)
-	//	return
-	//}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -190,9 +147,9 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
+	router.Get("/{id}", app.GetURL)
 	router.Use(mw.GzipHandle)
 	router.Post("/", app.AddURL)
-	router.Get("/{id}", app.GetURL)
 	router.Post("/api/shorten", app.Shorten)
 
 	server := http.Server{
