@@ -96,6 +96,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/x-gzip")
 		w.WriteHeader(http.StatusCreated)
 		w.Write(shortURL)
+		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -115,7 +116,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if r.Header.Get("Content-Encoding") == "application/gzip" {
+	if r.Header.Get("Content-Encoding") == "gzip" {
 		body, err = utils.Decompress(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -163,13 +164,13 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("Accept-Encoding") == "application/gzip" {
+	if r.Header.Get("Accept-Encoding") == "gzip" {
 		respJSON, err = utils.Compress(respJSON)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/x-gzip")
+		//w.Header().Set("Content-Type", "application/x-gzip")
 		w.Header().Set("Content-Encoding", "gzip")
 		w.WriteHeader(http.StatusCreated)
 		w.Write(respJSON)
