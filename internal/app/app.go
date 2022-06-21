@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/base64"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -105,6 +106,15 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	}
 
 	host := os.Getenv("BASE_URL")
+
+	var baseURL string
+	flag.StringVar(&baseURL, "b", "", "base url")
+	flag.Parse()
+
+	if baseURL != "" {
+		host = baseURL
+	}
+
 	if host != "" {
 		short.Scheme = strings.Split(host, "://")[0]
 		short.Host = strings.Split(host, "://")[1]
@@ -129,20 +139,29 @@ func (app *app) Start() error {
 	router.Get("/{id}", app.GetURL)
 	router.Post("/api/shorten", app.Shorten)
 
+	server := http.Server{
+		Addr:    ":8080",
+		Handler: router,
+	}
+
 	var cfg Config
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	server := http.Server{
-		Addr:    ":8080",
-		Handler: router,
+	address := os.Getenv("SERVER_ADDRESS")
+
+	var serverAddress string
+
+	flag.StringVar(&serverAddress, "a", "", "host to listen on")
+	flag.Parse()
+
+	if serverAddress != "" {
+		address = serverAddress
 	}
 
-	address := os.Getenv("SERVER_ADDRESS")
 	strs := strings.Split(address, ":")
-
 	if len(strs) == 2 {
 		port := strs[1]
 		server.Addr = fmt.Sprintf(":%s", port)
@@ -160,6 +179,16 @@ func (app *app) convertURLToKey(url []byte) string {
 
 // New возвращает новый экземпляр приложения
 func New() App {
+	var p string
+	flag.StringVar(&p, "f", "", "file path")
+	flag.Parse()
+
+	if p != "" {
+		return &app{
+			db: storage.NewFileStorage(p),
+		}
+	}
+
 	path := os.Getenv("FILE_STORAGE_PATH")
 	if path != "" {
 		return &app{
