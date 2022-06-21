@@ -66,7 +66,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("Content-Encoding") == "gzip" {
-		long, err = utils.Decompress(long)
+		long, err = utils.Decompress(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -114,7 +114,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Header.Get("Content-Encoding") == "gzip" {
-		body, err = utils.Decompress(body)
+		body, err = utils.Decompress(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

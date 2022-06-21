@@ -2,8 +2,9 @@ package utils
 
 import (
 	"bytes"
-	"compress/flate"
+	"compress/gzip"
 	"fmt"
+	"io"
 )
 
 // Compress сжимает слайс байт.
@@ -11,12 +12,11 @@ func Compress(data []byte) ([]byte, error) {
 	var b bytes.Buffer
 	// создаём переменную w — в неё будут записываться входящие данные,
 	// которые будут сжиматься и сохраняться в bytes.Buffer
-	w, err := flate.NewWriter(&b, flate.BestCompression)
-	if err != nil {
-		return nil, fmt.Errorf("failed init compress writer: %v", err)
-	}
+	//w, err := flate.NewWriter(&b, flate.BestCompression)
+	w := gzip.NewWriter(&b)
+
 	// запись данных
-	_, err = w.Write(data)
+	_, err := w.Write(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed write data to compress temporary buffer: %v", err)
 	}
@@ -32,14 +32,15 @@ func Compress(data []byte) ([]byte, error) {
 }
 
 // Decompress распаковывает слайс байт.
-func Decompress(data []byte) ([]byte, error) {
+func Decompress(data io.Reader) ([]byte, error) {
 	// переменная r будет читать входящие данные и распаковывать их
-	r := flate.NewReader(bytes.NewReader(data))
+	//r := flate.NewReader(bytes.NewReader(data))
+	r, err := gzip.NewReader(data)
 	defer r.Close()
 
 	var b bytes.Buffer
 	// в переменную b записываются распакованные данные
-	_, err := b.ReadFrom(r)
+	_, err = b.ReadFrom(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed decompress data: %v", err)
 	}
