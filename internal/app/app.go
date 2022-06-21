@@ -45,6 +45,7 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
 	w.Header().Set("Location", long)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 	_, err = w.Write([]byte(long))
@@ -55,11 +56,7 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
-	//var buf bytes.Buffer
-	//body := io.TeeReader(r.Body, &buf)
-
 	long, err := io.ReadAll(r.Body)
-
 	defer func() {
 		_ = r.Body.Close()
 	}()
@@ -147,8 +144,8 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
-	router.Get("/{id}", app.GetURL)
 	router.Use(mw.GzipHandle)
+	router.Get("/{id}", app.GetURL)
 	router.Post("/", app.AddURL)
 	router.Post("/api/shorten", app.Shorten)
 
