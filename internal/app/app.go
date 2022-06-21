@@ -1,6 +1,8 @@
 package app
 
 import (
+	"cmd/shortener/main.go/internal/mw"
+	"cmd/shortener/main.go/internal/utils"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
@@ -64,6 +66,14 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("Content-Encoding") == "gzip" {
+		long, err = utils.Decompress(long)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
 	key := app.convertURLToKey(long)
 	err = app.db.Write(key, string(long))
 	if err != nil {
@@ -75,6 +85,16 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		Scheme: "http",
 		Host:   r.Host,
 		Path:   key,
+	}
+
+	if r.Header.Get("Accept-Encoding") == "gzip" {
+		shortURL, err := utils.Compress([]byte(short.String()))
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		w.Write(shortURL)
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -93,6 +113,13 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	}
+	if r.Header.Get("Content-Encoding") == "gzip" {
+		body, err = utils.Decompress(body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	var data model.ShortenerRequest
@@ -134,6 +161,19 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	if r.Header.Get("Accept-Encoding") == "gzip" {
+		respJSON, err = utils.Compress(respJSON)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		w.Write(respJSON)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(respJSON)
@@ -142,6 +182,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
+	router.Use(mw.Compress)
 
 	router.Post("/", app.AddURL)
 	router.Get("/{id}", app.GetURL)
@@ -159,7 +200,6 @@ func (app *app) Start() error {
 	}
 
 	address := os.Getenv("SERVER_ADDRESS")
-
 	flag.Parse()
 
 	if serverAddress != "" {
@@ -184,7 +224,6 @@ func (app *app) convertURLToKey(url []byte) string {
 
 // New возвращает новый экземпляр приложения
 func New() App {
-
 	flag.Parse()
 
 	if p != "" {
