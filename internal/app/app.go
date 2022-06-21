@@ -1,7 +1,6 @@
 package app
 
 import (
-	"cmd/shortener/main.go/internal/mw"
 	"cmd/shortener/main.go/internal/utils"
 	"encoding/base64"
 	"encoding/json"
@@ -182,7 +181,6 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
-	router.Use(mw.Compress)
 
 	router.Post("/", app.AddURL)
 	router.Get("/{id}", app.GetURL)
