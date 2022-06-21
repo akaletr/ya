@@ -22,7 +22,6 @@ func (fs fileStorage) Read(value string) (string, error) {
 	}()
 
 	scanner := bufio.NewScanner(file)
-
 	for scanner.Scan() {
 		data := scanner.Text()
 		if strings.Split(data, "|")[0] == value {
