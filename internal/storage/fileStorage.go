@@ -22,19 +22,12 @@ func (fs fileStorage) Read(value string) (string, error) {
 	}()
 
 	scanner := bufio.NewScanner(file)
-	var long string
 
 	for scanner.Scan() {
 		data := scanner.Text()
-		fmt.Println("-----", data)
 		if strings.Split(data, "|")[0] == value {
-			long = strings.Split(data, "|")[1]
+			return strings.Split(data, "|")[1], nil
 		}
-	}
-
-	if long != "" {
-		fmt.Println("*****", long)
-		return long, nil
 	}
 
 	err = errors.New("error: there is no url in database")
