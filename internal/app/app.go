@@ -35,7 +35,7 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Location", long)
-	//w.WriteHeader(http.StatusTemporaryRedirect)
+	w.WriteHeader(http.StatusTemporaryRedirect)
 	fmt.Println("99999", long)
 	_, err = w.Write([]byte(long))
 	if err != nil {
