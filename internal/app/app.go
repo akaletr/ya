@@ -53,7 +53,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := app.convertUrlToKey(long)
+	key := app.convertURLToKey(long)
 	err = app.db.Write(key, string(long))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -91,7 +91,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := app.convertUrlToKey([]byte(data.URL))
+	key := app.convertURLToKey([]byte(data.URL))
 	err = app.db.Write(key, data.URL)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -151,8 +151,8 @@ func (app *app) Start() error {
 	return server.ListenAndServe()
 }
 
-// convertUrlToKey возвращает уникальный идентификатор для строки
-func (app *app) convertUrlToKey(url []byte) string {
+// convertURLToKey возвращает уникальный идентификатор для строки
+func (app *app) convertURLToKey(url []byte) string {
 	qq := crc32.ChecksumIEEE(url)
 	eb := big.NewInt(int64(qq))
 	return base64.RawURLEncoding.EncodeToString(eb.Bytes())
