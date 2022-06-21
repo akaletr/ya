@@ -25,8 +25,8 @@ func (fs fileStorage) Read(value string) (string, error) {
 
 	for scanner.Scan() {
 		data := scanner.Text()
-		if strings.Split(data, ":")[0] == value {
-			return strings.Split(data, ":")[0], nil
+		if strings.Split(data, "|")[0] == value {
+			return strings.Split(data, "|")[1], nil
 		}
 	}
 
@@ -43,8 +43,7 @@ func (fs fileStorage) Write(key, value string) error {
 		_ = file.Close()
 	}()
 
-	data := fmt.Sprintf("%s:%s\n", key, value)
-
+	data := fmt.Sprintf("%s|%s\n", key, value)
 	_, err = file.Write([]byte(data))
 	return err
 }
