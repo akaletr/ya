@@ -161,6 +161,12 @@ func (app *app) convertUrlToKey(url []byte) string {
 
 // New возвращает новый экземпляр приложения
 func New() App {
+	path := os.Getenv("FILE_STORAGE_PATH")
+	if path != "" {
+		return &app{
+			db: storage.NewFileStorage(path),
+		}
+	}
 
 	return &app{
 		db: storage.New(),
