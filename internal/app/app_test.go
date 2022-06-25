@@ -155,3 +155,41 @@ func Test_app_Shorten(t *testing.T) {
 		})
 	}
 }
+
+func Test_app_validateURL(t *testing.T) {
+	type args struct {
+		URL []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name:    "test 1",
+			args:    args{URL: []byte("google.com")},
+			wantErr: assert.Error,
+		},
+		{
+			name:    "test 2",
+			args:    args{URL: []byte("https://golang-blog.blogspot.com/2021")},
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "test 3",
+			args:    args{URL: []byte("")},
+			wantErr: assert.Error,
+		},
+		{
+			name:    "test 4",
+			args:    args{URL: []byte("https//golang-blog.blogspot.com/2021")},
+			wantErr: assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := &app{}
+			tt.wantErr(t, app.validateURL(tt.args.URL), fmt.Sprintf("validateURL(%v)", tt.args.URL))
+		})
+	}
+}

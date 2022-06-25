@@ -39,9 +39,9 @@ type app struct {
 
 // GetURL возвращает в ответе реальный url
 func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
-	s := chi.URLParam(r, "id")
+	ID := chi.URLParam(r, "id")
 
-	long, err := app.db.Read(s)
+	long, err := app.db.Read(ID)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -51,38 +51,51 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 	_, err = w.Write([]byte(long))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
-	long, err := io.ReadAll(r.Body)
+	longBS, err := io.ReadAll(r.Body)
 	defer func() {
-		_ = r.Body.Close()
+		err = r.Body.Close()
+		if err != nil {
+			log.Println(err)
+		}
 	}()
-	if err != nil || len(long) == 0 {
+
+	if err != nil || len(longBS) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
+		log.Println(err)
 		return
 	}
 
-	key := app.convertURLToKey(long)
-	err = app.db.Write(key, string(long))
+	err = app.validateURL(longBS)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println(err)
+		return
+	}
+
+	key := app.convertURLToKey(longBS)
+	err = app.db.Write(key, string(longBS))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
 		return
 	}
 
-	short := url.URL{
+	shortURL := url.URL{
 		Scheme: "http",
 		Host:   r.Host,
 		Path:   key,
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(short.String()))
+	_, err = w.Write([]byte(shortURL.String()))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
@@ -111,7 +124,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	short := url.URL{
+	shortURL := url.URL{
 		Scheme: "http",
 		Host:   r.Host,
 		Path:   key,
@@ -126,11 +139,11 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if host != "" {
-		short.Scheme = strings.Split(host, "://")[0]
-		short.Host = strings.Split(host, "://")[1]
+		shortURL.Scheme = strings.Split(host, "://")[0]
+		shortURL.Host = strings.Split(host, "://")[1]
 	}
 
-	resp := model.ShortenerResponse{Result: short.String()}
+	resp := model.ShortenerResponse{Result: shortURL.String()}
 	respJSON, err := json.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -183,10 +196,19 @@ func (app *app) Start() error {
 }
 
 // convertURLToKey возвращает уникальный идентификатор для строки
-func (app *app) convertURLToKey(url []byte) string {
-	qq := crc32.ChecksumIEEE(url)
+func (app *app) convertURLToKey(URL []byte) string {
+	qq := crc32.ChecksumIEEE(URL)
 	eb := big.NewInt(int64(qq))
 	return base64.RawURLEncoding.EncodeToString(eb.Bytes())
+}
+
+// validateURL проверка URL на валидность
+func (app *app) validateURL(URL []byte) error {
+	_, err := url.ParseRequestURI(string(URL))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // New возвращает новый экземпляр приложения
