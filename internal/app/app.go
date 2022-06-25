@@ -139,12 +139,17 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write(respJSON)
+
+	_, err = w.Write(respJSON)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
+
 	router.Use(mw.GzipHandle)
 	router.Get("/{id}", app.GetURL)
 	router.Post("/", app.AddURL)

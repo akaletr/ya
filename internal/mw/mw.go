@@ -3,7 +3,6 @@ package mw
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -21,18 +20,26 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func GzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// проверяем, что запрос поддерживает gzip-сжатие
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
-				fmt.Println(err)
-			}
-			reader := bytes.NewReader(body)
-			gzreader, err := gzip.NewReader(reader)
-			if err != nil {
-				fmt.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 
-			o, _ := io.ReadAll(gzreader)
+			reader := bytes.NewReader(body)
+			gzReader, err := gzip.NewReader(reader)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			o, err := io.ReadAll(gzReader)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 			output := strings.NewReader(string(o))
 			oc := io.NopCloser(output)
 			r.Body = oc
@@ -49,10 +56,16 @@ func GzipHandle(next http.Handler) http.Handler {
 		// создаём gzip.Writer поверх текущего w
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			io.WriteString(w, err.Error())
+			_, err = io.WriteString(w, err.Error())
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 			return
 		}
-		defer gz.Close()
+		defer func() {
+			_ = gz.Close()
+		}()
 
 		w.Header().Set("Content-Encoding", "gzip")
 		// передаём обработчику страницы переменную типа gzipWriter для вывода данных
