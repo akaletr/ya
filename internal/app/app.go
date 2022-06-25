@@ -1,7 +1,6 @@
 package app
 
 import (
-	"cmd/shortener/main.go/internal/mw"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
@@ -16,7 +15,9 @@ import (
 	"strings"
 
 	"cmd/shortener/main.go/internal/model"
+	"cmd/shortener/main.go/internal/mw"
 	"cmd/shortener/main.go/internal/storage"
+
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 )

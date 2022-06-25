@@ -58,9 +58,11 @@ func Test_app_AddURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
 			b := strings.NewReader(tt.args)
-			req, _ := http.NewRequest(http.MethodPost, "/", b)
+			req, err := http.NewRequest(http.MethodPost, "/", b)
 
 			handler.ServeHTTP(rec, req)
+
+			assert.NoError(t, err)
 			assert.Equal(t, tt.want, rec.Body.Bytes())
 			assert.Equal(t, tt.status, rec.Code)
 		})
@@ -76,14 +78,14 @@ func Test_app_GetURL(t *testing.T) {
 	}{
 		{
 			name:   "test 1",
-			args:   "hello",
-			want:   []byte("world"),
+			args:   "kUxCqw",
+			want:   []byte("https://www.delftstack.com/ru/howto/go/how-to-read-a-file-line-by-line-in-go/"),
 			status: http.StatusTemporaryRedirect,
 		},
 		{
 			name:   "test 2",
-			args:   "exist",
-			want:   []byte("yes"),
+			args:   "D-rwfg",
+			want:   []byte("https://www.jetbrains.com/ru-ru/"),
 			status: http.StatusTemporaryRedirect,
 		},
 		{
@@ -101,12 +103,53 @@ func Test_app_GetURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
-			req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/%s", tt.args), nil)
+			req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/%s", tt.args), nil)
 
 			r := chi.NewRouter()
 			r.Get("/{id}", app.GetURL)
 			r.ServeHTTP(rec, req)
 
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, rec.Body.Bytes())
+			assert.Equal(t, tt.status, rec.Code)
+		})
+	}
+}
+
+func Test_app_Shorten(t *testing.T) {
+	tests := []struct {
+		name   string
+		args   string
+		want   []byte
+		status int
+	}{
+		{
+			name:   "test 1",
+			args:   `{"url":"helloworld"}`,
+			want:   []byte(`{"result":"http://-esgrQ"}`),
+			status: http.StatusCreated,
+		},
+		{
+			name:   "test 2",
+			args:   `{"url":"helloworld}`,
+			want:   nil,
+			status: http.StatusBadRequest,
+		},
+	}
+
+	app := &app{
+		db: storage.NewMock(),
+	}
+	handler := http.HandlerFunc(app.Shorten)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			b := strings.NewReader(tt.args)
+			req, err := http.NewRequest(http.MethodPost, "/shorten", b)
+			handler.ServeHTTP(rec, req)
+
+			assert.NoError(t, err)
 			assert.Equal(t, tt.want, rec.Body.Bytes())
 			assert.Equal(t, tt.status, rec.Code)
 		})

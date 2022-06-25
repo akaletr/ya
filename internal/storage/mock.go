@@ -19,11 +19,12 @@ func (s mockStorage) Write(key, value string) error {
 }
 
 func NewMock() Storage {
-	storage := storage{
+	storage := mockStorage{
 		db: make(map[string]string),
 	}
 
-	storage.db["exist"] = "yes"
-	storage.db["hello"] = "world"
+	storage.db["kUxCqw"] = "https://www.delftstack.com/ru/howto/go/how-to-read-a-file-line-by-line-in-go/"
+	storage.db["D-rwfg"] = "https://www.jetbrains.com/ru-ru/"
+
 	return &storage
 }
