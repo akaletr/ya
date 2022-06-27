@@ -2,8 +2,6 @@ package config
 
 import (
 	"flag"
-	"log"
-
 	"github.com/caarlos0/env/v6"
 )
 
@@ -23,26 +21,14 @@ func GetConfig() (Config, error) {
 	// берем конфиг из окружения
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		return Config{}, err
 	}
 
 	// читаем флаги, если есть - перезаписываем конфиг
-	var baseURL, serverAddress, fileStoragePath string
-
-	flag.StringVar(&baseURL, "b", "", "base url")
-	flag.StringVar(&serverAddress, "a", "", "host to listen on")
-	flag.StringVar(&fileStoragePath, "f", "", "file path")
+	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "base url")
+	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "host to listen on")
+	flag.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "file path")
 	flag.Parse()
-
-	if baseURL != "" {
-		cfg.BaseURL = baseURL
-	}
-	if serverAddress != "" {
-		cfg.ServerAddress = serverAddress
-	}
-	if fileStoragePath != "" {
-		cfg.FileStoragePath = fileStoragePath
-	}
 
 	return cfg, nil
 }
