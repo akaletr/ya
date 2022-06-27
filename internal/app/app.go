@@ -3,7 +3,6 @@ package app
 import (
 	"encoding/base64"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -11,30 +10,18 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
-	"os"
-	"strings"
 
+	"cmd/shortener/main.go/internal/config"
 	"cmd/shortener/main.go/internal/model"
 	"cmd/shortener/main.go/internal/mw"
 	"cmd/shortener/main.go/internal/storage"
 
-	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 )
 
-var (
-	baseURL, serverAddress, p string
-)
-
-func init() {
-	flag.StringVar(&baseURL, "b", "", "base url")
-	flag.StringVar(&serverAddress, "a", "", "host to listen on")
-	flag.StringVar(&p, "f", "", "file path")
-}
-
 type app struct {
 	db  storage.Storage
-	cfg Config
+	cfg config.Config
 }
 
 // GetURL возвращает в ответе реальный url
@@ -86,20 +73,16 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL := url.URL{
-		Scheme: "http",
-		Host:   r.Host,
-		Path:   key,
-	}
+	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
 
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(shortURL.String()))
+	_, err = w.Write([]byte(shortURL))
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-// Shorten обработка запроса и формирование ответа в json
+// Shorten обрабатываут запрос и формирует ответ в json
 func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	defer func() {
@@ -117,6 +100,13 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = app.validateURL([]byte(data.URL))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println(err)
+		return
+	}
+
 	key := app.convertURLToKey([]byte(data.URL))
 	err = app.db.Write(key, data.URL)
 	if err != nil {
@@ -124,26 +114,9 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL := url.URL{
-		Scheme: "http",
-		Host:   r.Host,
-		Path:   key,
-	}
+	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
 
-	host := os.Getenv("BASE_URL")
-
-	flag.Parse()
-
-	if baseURL != "" {
-		host = baseURL
-	}
-
-	if host != "" {
-		shortURL.Scheme = strings.Split(host, "://")[0]
-		shortURL.Host = strings.Split(host, "://")[1]
-	}
-
-	resp := model.ShortenerResponse{Result: shortURL.String()}
+	resp := model.ShortenerResponse{Result: shortURL}
 	respJSON, err := json.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -169,27 +142,8 @@ func (app *app) Start() error {
 	router.Post("/api/shorten", app.Shorten)
 
 	server := http.Server{
-		Addr:    ":8080",
+		Addr:    app.cfg.ServerAddress,
 		Handler: router,
-	}
-
-	var cfg Config
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	address := os.Getenv("SERVER_ADDRESS")
-	flag.Parse()
-
-	if serverAddress != "" {
-		address = serverAddress
-	}
-
-	strs := strings.Split(address, ":")
-	if len(strs) == 2 {
-		port := strs[1]
-		server.Addr = fmt.Sprintf(":%s", port)
 	}
 
 	return server.ListenAndServe()
@@ -202,7 +156,7 @@ func (app *app) convertURLToKey(URL []byte) string {
 	return base64.RawURLEncoding.EncodeToString(eb.Bytes())
 }
 
-// validateURL проверка URL на валидность
+// validateURL проверяет URL на валидность
 func (app *app) validateURL(URL []byte) error {
 	_, err := url.ParseRequestURI(string(URL))
 	if err != nil {
@@ -212,28 +166,17 @@ func (app *app) validateURL(URL []byte) error {
 }
 
 // New возвращает новый экземпляр приложения
-func New() App {
-	flag.Parse()
+func New(cfg config.Config) App {
 
-	if p != "" {
+	if cfg.FileStoragePath != "" {
 		return &app{
-			db: storage.NewFileStorage(p),
-		}
-	}
-
-	path := os.Getenv("FILE_STORAGE_PATH")
-	if path != "" {
-		return &app{
-			db: storage.NewFileStorage(path),
+			db:  storage.NewFileStorage(cfg.FileStoragePath),
+			cfg: cfg,
 		}
 	}
 
 	return &app{
-		db: storage.New(),
+		db:  storage.New(),
+		cfg: cfg,
 	}
-}
-
-type Config struct {
-	ServerAddress string `env:"SERVER_ADDRESS"`
-	BaseURL       string `env:"BASE_URL"`
 }

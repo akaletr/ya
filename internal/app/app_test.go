@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmd/shortener/main.go/internal/config"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -14,11 +15,18 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	cfg := config.Config{
+		ServerAddress: "localhost:8080",
+	}
+
 	name := "create app test"
-	want := &app{db: storage.New()}
+	want := &app{
+		db:  storage.New(),
+		cfg: cfg,
+	}
 
 	t.Run(name, func(t *testing.T) {
-		assert.Equal(t, want, New())
+		assert.Equal(t, want, New(cfg))
 	})
 }
 
@@ -32,13 +40,13 @@ func Test_app_AddURL(t *testing.T) {
 		{
 			name:   "test 1",
 			args:   "helloworld",
-			want:   []byte("http://-esgrQ"),
-			status: http.StatusCreated,
+			want:   nil,
+			status: http.StatusBadRequest,
 		},
 		{
 			name:   "test 2",
-			args:   "google.com",
-			want:   []byte("http://4U8Jkw"),
+			args:   "http://google.com",
+			want:   []byte("http://localhost:8080/cSDPTQ"),
 			status: http.StatusCreated,
 		},
 		{
@@ -51,6 +59,9 @@ func Test_app_AddURL(t *testing.T) {
 
 	app := &app{
 		db: storage.NewMock(),
+		cfg: config.Config{
+			BaseURL: "http://localhost:8080",
+		},
 	}
 	handler := http.HandlerFunc(app.AddURL)
 
@@ -126,8 +137,8 @@ func Test_app_Shorten(t *testing.T) {
 		{
 			name:   "test 1",
 			args:   `{"url":"helloworld"}`,
-			want:   []byte(`{"result":"http://-esgrQ"}`),
-			status: http.StatusCreated,
+			want:   nil,
+			status: http.StatusBadRequest,
 		},
 		{
 			name:   "test 2",
@@ -135,10 +146,19 @@ func Test_app_Shorten(t *testing.T) {
 			want:   nil,
 			status: http.StatusBadRequest,
 		},
+		{
+			name:   "test 3",
+			args:   `{"url":"https://habr.com/ru/post/479882/"}`,
+			want:   []byte(`{"result":"http://localhost:8080/XlVFpw"}`),
+			status: http.StatusCreated,
+		},
 	}
 
 	app := &app{
 		db: storage.NewMock(),
+		cfg: config.Config{
+			BaseURL: "http://localhost:8080",
+		},
 	}
 	handler := http.HandlerFunc(app.Shorten)
 

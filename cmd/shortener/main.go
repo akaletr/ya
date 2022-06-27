@@ -1,12 +1,18 @@
 package main
 
 import (
-	"log"
-
 	"cmd/shortener/main.go/internal/app"
+	"cmd/shortener/main.go/internal/config"
+	"fmt"
+	"log"
 )
 
 func main() {
-	myApp := app.New()
+	cfg, err := config.GetConfig()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	myApp := app.New(cfg)
 	log.Fatal(myApp.Start())
 }
