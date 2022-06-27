@@ -2,8 +2,9 @@ package config
 
 import (
 	"flag"
-	"github.com/caarlos0/env/v6"
 	"log"
+
+	"github.com/caarlos0/env/v6"
 )
 
 type Config struct {
@@ -19,11 +20,13 @@ func GetConfig() (Config, error) {
 		FileStoragePath: "",
 	}
 
+	// берем конфиг из окружения
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// читаем флаги, если есть - перезаписываем конфиг
 	var baseURL, serverAddress, fileStoragePath string
 
 	flag.StringVar(&baseURL, "b", "", "base url")

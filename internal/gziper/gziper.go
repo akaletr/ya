@@ -1,4 +1,4 @@
-package mw
+package gziper
 
 import (
 	"bytes"

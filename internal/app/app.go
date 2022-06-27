@@ -12,8 +12,8 @@ import (
 	"net/url"
 
 	"cmd/shortener/main.go/internal/config"
+	"cmd/shortener/main.go/internal/gziper"
 	"cmd/shortener/main.go/internal/model"
-	"cmd/shortener/main.go/internal/mw"
 	"cmd/shortener/main.go/internal/storage"
 
 	"github.com/go-chi/chi/v5"
@@ -136,7 +136,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 func (app *app) Start() error {
 	router := chi.NewRouter()
 
-	router.Use(mw.GzipHandle)
+	router.Use(gziper.GzipHandle)
 	router.Get("/{id}", app.GetURL)
 	router.Post("/", app.AddURL)
 	router.Post("/api/shorten", app.Shorten)

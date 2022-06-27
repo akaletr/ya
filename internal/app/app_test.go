@@ -1,13 +1,13 @@
 package app
 
 import (
-	"cmd/shortener/main.go/internal/config"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"cmd/shortener/main.go/internal/config"
 	"cmd/shortener/main.go/internal/storage"
 
 	"github.com/go-chi/chi/v5"
