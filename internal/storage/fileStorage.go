@@ -48,7 +48,7 @@ func (fs fileStorage) Write(id, key, value string) error {
 	return err
 }
 
-func (s fileStorage) ReadAll(id, baseURL string) (model.AllShortenerRequest, error) {
+func (fs fileStorage) ReadAll(id, baseURL string) (model.AllShortenerRequest, error) {
 	return nil, nil
 }
 
