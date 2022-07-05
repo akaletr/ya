@@ -43,13 +43,37 @@ func (fs fileStorage) Write(id, key, value string) error {
 		_ = file.Close()
 	}()
 
-	data := fmt.Sprintf("%s|%s\n", key, value)
+	data := fmt.Sprintf("%s|%s|%s\n", key, value, id)
 	_, err = file.Write([]byte(data))
 	return err
 }
 
 func (fs fileStorage) ReadAll(id, baseURL string) (model.AllShortenerRequest, error) {
-	return nil, nil
+	result := model.AllShortenerRequest{}
+
+	file, err := os.OpenFile(fs.path, os.O_RDONLY|os.O_CREATE, 0777)
+	if err != nil {
+		return model.AllShortenerRequest{}, err
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		data := scanner.Text()
+		line := strings.Split(data, "|")
+		if line[2] == id {
+			item := model.Item{
+				ShortURL:    fmt.Sprintf("%s/%s", baseURL, line[0]),
+				OriginalURL: line[1],
+			}
+
+			result = append(result, item)
+			return result, nil
+		}
+	}
+	return result, nil
 }
 
 func NewFileStorage(path string) Storage {

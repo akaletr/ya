@@ -195,6 +195,10 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dataBS, err := json.Marshal(data)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 
 	_, err = w.Write(dataBS)

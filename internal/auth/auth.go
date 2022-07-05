@@ -28,7 +28,7 @@ func (auth *auth) CookieHandler(next http.Handler) http.Handler {
 		cookie, err := r.Cookie("user")
 
 		if err != nil || !auth.Check(cookie) {
-			e, value := auth.NewToken()
+			value, e := auth.NewToken()
 			if e != nil {
 				log.Println(err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -65,10 +65,10 @@ func (auth *auth) Check(cookie *http.Cookie) bool {
 }
 
 // NewToken создает новый токен
-func (auth *auth) NewToken() (error, []byte) {
+func (auth *auth) NewToken() ([]byte, error) {
 	src, err := generateRandom(4)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	// подписываем алгоритмом HMAC, используя sha256
@@ -77,7 +77,7 @@ func (auth *auth) NewToken() (error, []byte) {
 	dst := h.Sum(nil)
 
 	dst = append(src, dst...)
-	return nil, dst
+	return dst, nil
 }
 
 func (auth *auth) GetID(cookie *http.Cookie) (string, error) {
