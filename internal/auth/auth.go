@@ -43,7 +43,6 @@ func (auth *auth) CookieHandler(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		auth.Check(cookie)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -86,6 +85,9 @@ func (auth *auth) NewToken() (error, []byte) {
 }
 
 func (auth *auth) GetID(cookie *http.Cookie) (error, string) {
+	if cookie.Value == "" {
+		return nil, ""
+	}
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
 		return err, ""

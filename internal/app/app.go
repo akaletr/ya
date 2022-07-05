@@ -31,6 +31,7 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
 	if err != nil {
 		log.Println(err)
+		c = &http.Cookie{}
 	}
 
 	err, id := app.auth.GetID(c)
@@ -58,6 +59,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
 	if err != nil {
 		log.Println(err)
+		c = &http.Cookie{}
 	}
 
 	err, id := app.auth.GetID(c)
@@ -108,6 +110,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
 	if err != nil {
 		log.Println(err)
+		c = &http.Cookie{}
 	}
 
 	err, id := app.auth.GetID(c)
@@ -167,6 +170,7 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
 	if err != nil {
 		log.Println(err)
+		c = &http.Cookie{}
 	}
 
 	err, id := app.auth.GetID(c)
@@ -189,7 +193,7 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 func (app *app) Start() error {
 	router := chi.NewRouter()
 
-	router.Use(gziper.GzipHandle, app.auth.CookieHandler)
+	router.Use(app.auth.CookieHandler, gziper.GzipHandle)
 	router.Get("/{id}", app.GetURL)
 	router.Post("/", app.AddURL)
 	router.Post("/api/shorten", app.Shorten)

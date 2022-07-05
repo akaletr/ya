@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmd/shortener/main.go/internal/auth"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -17,12 +18,14 @@ import (
 func TestNew(t *testing.T) {
 	cfg := config.Config{
 		ServerAddress: "localhost:8080",
+		Key:           "yandex",
 	}
 
 	name := "create app test"
 	want := &app{
-		db:  storage.New(),
-		cfg: cfg,
+		db:   storage.New(),
+		cfg:  cfg,
+		auth: auth.New(cfg.Key),
 	}
 
 	t.Run(name, func(t *testing.T) {
@@ -61,7 +64,9 @@ func Test_app_AddURL(t *testing.T) {
 		db: storage.NewMock(),
 		cfg: config.Config{
 			BaseURL: "http://localhost:8080",
+			Key:     "yandex",
 		},
+		auth: auth.New("yandex"),
 	}
 	handler := http.HandlerFunc(app.AddURL)
 
