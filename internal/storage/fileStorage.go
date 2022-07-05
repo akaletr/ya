@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"cmd/shortener/main.go/internal/model"
 	"errors"
 	"fmt"
 	"os"
@@ -12,7 +13,7 @@ type fileStorage struct {
 	path string
 }
 
-func (fs fileStorage) Read(value string) (string, error) {
+func (fs fileStorage) Read(id, value string) (string, error) {
 	file, err := os.OpenFile(fs.path, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
 		return "", err
@@ -33,7 +34,7 @@ func (fs fileStorage) Read(value string) (string, error) {
 	return "", err
 }
 
-func (fs fileStorage) Write(key, value string) error {
+func (fs fileStorage) Write(id, key, value string) error {
 	file, err := os.OpenFile(fs.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		return err
@@ -45,6 +46,10 @@ func (fs fileStorage) Write(key, value string) error {
 	data := fmt.Sprintf("%s|%s\n", key, value)
 	_, err = file.Write([]byte(data))
 	return err
+}
+
+func (s fileStorage) ReadAll(id, baseURL string) (model.AllShortenerRequest, error) {
+	return nil, nil
 }
 
 func NewFileStorage(path string) Storage {

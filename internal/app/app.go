@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"cmd/shortener/main.go/internal/auth"
 	"cmd/shortener/main.go/internal/config"
 	"cmd/shortener/main.go/internal/gziper"
 	"cmd/shortener/main.go/internal/model"
@@ -20,15 +21,25 @@ import (
 )
 
 type app struct {
-	db  storage.Storage
-	cfg config.Config
+	db   storage.Storage
+	cfg  config.Config
+	auth auth.Auth
 }
 
 // GetURL возвращает в ответе реальный url
 func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		log.Println(err)
+	}
+
+	err, id := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
 	ID := chi.URLParam(r, "id")
 
-	long, err := app.db.Read(ID)
+	long, err := app.db.Read(id, ID)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -44,6 +55,16 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		log.Println(err)
+	}
+
+	err, id := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
 	longBS, err := io.ReadAll(r.Body)
 	defer func() {
 		err = r.Body.Close()
@@ -66,7 +87,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := app.convertURLToKey(longBS)
-	err = app.db.Write(key, string(longBS))
+	err = app.db.Write(id, key, string(longBS))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println(err)
@@ -84,6 +105,16 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 
 // Shorten обрабатываут запрос и формирует ответ в json
 func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		log.Println(err)
+	}
+
+	err, id := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
 	body, err := io.ReadAll(r.Body)
 	defer func() {
 		_ = r.Body.Close()
@@ -108,7 +139,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := app.convertURLToKey([]byte(data.URL))
-	err = app.db.Write(key, data.URL)
+	err = app.db.Write(id, key, data.URL)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -132,14 +163,37 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		log.Println(err)
+	}
+
+	err, id := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
+	data, err := app.db.ReadAll(id, app.cfg.BaseURL)
+	for _, item := range data {
+		short := fmt.Sprintf("%s/%s", app.cfg.BaseURL, item.ShortURL)
+		item.ShortURL = short
+	}
+
+	dataBS, err := json.Marshal(data)
+	w.Write(dataBS)
+	//app.auth.Check(cookie)
+}
+
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
 
-	router.Use(gziper.GzipHandle)
+	router.Use(gziper.GzipHandle, app.auth.CookieHandler)
 	router.Get("/{id}", app.GetURL)
 	router.Post("/", app.AddURL)
 	router.Post("/api/shorten", app.Shorten)
+	router.Get("/api/user/urls", app.GetAllURLs)
 
 	server := http.Server{
 		Addr:    app.cfg.ServerAddress,
@@ -170,13 +224,15 @@ func New(cfg config.Config) App {
 
 	if cfg.FileStoragePath != "" {
 		return &app{
-			db:  storage.NewFileStorage(cfg.FileStoragePath),
-			cfg: cfg,
+			db:   storage.NewFileStorage(cfg.FileStoragePath),
+			cfg:  cfg,
+			auth: auth.New(cfg.Key),
 		}
 	}
 
 	return &app{
-		db:  storage.New(),
-		cfg: cfg,
+		db:   storage.New(),
+		cfg:  cfg,
+		auth: auth.New(cfg.Key),
 	}
 }

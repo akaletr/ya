@@ -1,12 +1,15 @@
 package storage
 
-import "errors"
+import (
+	"cmd/shortener/main.go/internal/model"
+	"errors"
+)
 
 type mockStorage struct {
 	db map[string]string
 }
 
-func (s mockStorage) Read(value string) (string, error) {
+func (s mockStorage) Read(id, value string) (string, error) {
 	if url, ok := s.db[value]; ok {
 		return url, nil
 	}
@@ -14,8 +17,11 @@ func (s mockStorage) Read(value string) (string, error) {
 	return "", err
 }
 
-func (s mockStorage) Write(key, value string) error {
+func (s mockStorage) Write(id, key, value string) error {
 	return nil
+}
+func (s mockStorage) ReadAll(id, baseURL string) (model.AllShortenerRequest, error) {
+	return nil, nil
 }
 
 func NewMock() Storage {
