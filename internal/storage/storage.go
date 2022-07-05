@@ -14,6 +14,15 @@ func (s storage) Read(id, value string) (string, error) {
 	if user, ok := s.db[id]; ok {
 		return user[value], nil
 	}
+
+	for _, db := range s.db {
+		for key, v := range db {
+			if key == value {
+				return v, nil
+			}
+		}
+	}
+
 	err := errors.New("error: there is no url in database")
 	return "", err
 }
