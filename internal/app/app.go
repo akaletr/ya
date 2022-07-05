@@ -34,7 +34,7 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 		c = &http.Cookie{}
 	}
 
-	err, id := app.auth.GetID(c)
+	id, err := app.auth.GetID(c)
 	if err != nil {
 		log.Println(err)
 	}
@@ -62,7 +62,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		c = &http.Cookie{}
 	}
 
-	err, id := app.auth.GetID(c)
+	id, err := app.auth.GetID(c)
 	if err != nil {
 		log.Println(err)
 	}
@@ -113,7 +113,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		c = &http.Cookie{}
 	}
 
-	err, id := app.auth.GetID(c)
+	id, err := app.auth.GetID(c)
 	if err != nil {
 		log.Println(err)
 	}
@@ -173,15 +173,15 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 		c = &http.Cookie{}
 	}
 
-	err, id := app.auth.GetID(c)
+	id, err := app.auth.GetID(c)
 	if err != nil {
 		log.Println(err)
 	}
 
 	data, err := app.db.ReadAll(id, app.cfg.BaseURL)
-	for _, item := range data {
-		short := fmt.Sprintf("%s/%s", app.cfg.BaseURL, item.ShortURL)
-		item.ShortURL = short
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	if len(data) == 0 {
@@ -189,10 +189,18 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for _, item := range data {
+		short := fmt.Sprintf("%s/%s", app.cfg.BaseURL, item.ShortURL)
+		item.ShortURL = short
+	}
+
 	dataBS, err := json.Marshal(data)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(dataBS)
-	//app.auth.Check(cookie)
+
+	_, err = w.Write(dataBS)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // Start запускает сервер

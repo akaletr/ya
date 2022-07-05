@@ -61,11 +61,7 @@ func (auth *auth) Check(cookie *http.Cookie) bool {
 	h.Write(data[:4])
 	sign := h.Sum(nil)
 
-	if hmac.Equal(sign, data[4:]) {
-		return true
-	}
-
-	return false
+	return hmac.Equal(sign, data[4:])
 }
 
 // NewToken создает новый токен
@@ -84,16 +80,16 @@ func (auth *auth) NewToken() (error, []byte) {
 	return nil, dst
 }
 
-func (auth *auth) GetID(cookie *http.Cookie) (error, string) {
+func (auth *auth) GetID(cookie *http.Cookie) (string, error) {
 	if cookie.Value == "" {
-		return nil, "default"
+		return "default", nil
 	}
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 
-	return nil, strconv.FormatUint(uint64(binary.BigEndian.Uint32(data[:4])), 10)
+	return strconv.FormatUint(uint64(binary.BigEndian.Uint32(data[:4])), 10), nil
 }
 
 func generateRandom(size int) ([]byte, error) {
