@@ -86,7 +86,7 @@ func (auth *auth) NewToken() (error, []byte) {
 
 func (auth *auth) GetID(cookie *http.Cookie) (error, string) {
 	if cookie.Value == "" {
-		return nil, ""
+		return nil, "default"
 	}
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
