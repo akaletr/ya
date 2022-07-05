@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type auth struct {
@@ -36,8 +37,9 @@ func (auth *auth) CookieHandler(next http.Handler) http.Handler {
 			}
 
 			cookie = &http.Cookie{
-				Name:  "user",
-				Value: hex.EncodeToString(value),
+				Name:    "user",
+				Value:   hex.EncodeToString(value),
+				Expires: time.Now().Add(time.Hour),
 			}
 			http.SetCookie(w, cookie)
 			next.ServeHTTP(w, r)
