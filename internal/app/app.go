@@ -28,6 +28,7 @@ type app struct {
 
 // GetURL возвращает в ответе реальный url
 func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
+	log.Println(app.cfg)
 	c, err := r.Cookie("user")
 	if err != nil {
 		log.Println(err)
@@ -56,6 +57,7 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
+	log.Println(app.cfg)
 	c, err := r.Cookie("user")
 	if err != nil {
 		log.Println(err)
@@ -107,6 +109,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 
 // Shorten обрабатываут запрос и формирует ответ в json
 func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
+	log.Println(app.cfg)
 	c, err := r.Cookie("user")
 	if err != nil {
 		log.Println(err)
@@ -167,6 +170,8 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
+	log.Println(app.cfg)
+
 	c, err := r.Cookie("user")
 	if err != nil {
 		log.Println(err)
