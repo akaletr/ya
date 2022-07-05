@@ -216,11 +216,11 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 func (app *app) Start() error {
 	router := chi.NewRouter()
 
-	router.Use(app.auth.CookieHandler, gziper.GzipHandle)
+	router.Use(gziper.GzipHandle)
 	router.Get("/{id}", app.GetURL)
-	router.Post("/", app.AddURL)
-	router.Post("/api/shorten", app.Shorten)
-	router.Get("/api/user/urls", app.GetAllURLs)
+	router.With(app.auth.CookieHandler).Post("/", app.AddURL)
+	router.With(app.auth.CookieHandler).Post("/api/shorten", app.Shorten)
+	router.With(app.auth.CookieHandler).Get("/api/user/urls", app.GetAllURLs)
 
 	server := http.Server{
 		Addr:    app.cfg.ServerAddress,
