@@ -184,7 +184,13 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 		item.ShortURL = short
 	}
 
+	if len(data) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	dataBS, err := json.Marshal(data)
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(dataBS)
 	//app.auth.Check(cookie)
 }
