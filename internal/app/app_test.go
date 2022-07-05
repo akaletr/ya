@@ -113,7 +113,8 @@ func Test_app_GetURL(t *testing.T) {
 	}
 
 	app := &app{
-		db: storage.NewMock(),
+		db:   storage.NewMock(),
+		auth: auth.New("yandex"),
 	}
 
 	for _, tt := range tests {
@@ -164,6 +165,7 @@ func Test_app_Shorten(t *testing.T) {
 		cfg: config.Config{
 			BaseURL: "http://localhost:8080",
 		},
+		auth: auth.New("yandex"),
 	}
 	handler := http.HandlerFunc(app.Shorten)
 
