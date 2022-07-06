@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmd/shortener/main.go/internal/auth"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -20,8 +21,9 @@ import (
 )
 
 type app struct {
-	db  storage.Storage
-	cfg config.Config
+	db   storage.Storage
+	cfg  config.Config
+	auth auth.Auth
 }
 
 // GetURL возвращает в ответе реальный url
@@ -170,13 +172,15 @@ func New(cfg config.Config) App {
 
 	if cfg.FileStoragePath != "" {
 		return &app{
-			db:  storage.NewFileStorage(cfg.FileStoragePath),
-			cfg: cfg,
+			db:   storage.NewFileStorage(cfg.FileStoragePath),
+			cfg:  cfg,
+			auth: auth.New(cfg.SecretKey),
 		}
 	}
 
 	return &app{
-		db:  storage.New(),
-		cfg: cfg,
+		db:   storage.New(),
+		cfg:  cfg,
+		auth: auth.New(cfg.SecretKey),
 	}
 }
