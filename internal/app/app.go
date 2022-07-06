@@ -165,6 +165,8 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+
 	data, err := app.db.ReadAll(id)
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
@@ -186,7 +188,6 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resultJSON)
 }
@@ -195,10 +196,11 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 func (app *app) Start() error {
 	router := chi.NewRouter()
 
-	router.Use(gziper.GzipHandle, app.auth.CookieHandler)
+	router.Use(gziper.GzipHandle)
+
 	router.Get("/{key}", app.GetURL)
-	router.Post("/", app.AddURL)
-	router.Post("/api/shorten", app.Shorten)
+	router.With(app.auth.CookieHandler).Post("/", app.AddURL)
+	router.With(app.auth.CookieHandler).Post("/api/shorten", app.Shorten)
 	router.Get("/api/user/urls", app.GetAllURLs)
 
 	server := http.Server{
