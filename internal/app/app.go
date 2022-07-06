@@ -155,7 +155,39 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		c = &http.Cookie{}
+	}
 
+	id, err := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
+	data, err := app.db.ReadAll(id)
+	if err != nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	result := model.AllShortenerRequest{}
+	for key, value := range data {
+		item := model.Item{
+			ShortURL:    fmt.Sprintf("%s/%s", app.cfg.BaseURL, key),
+			OriginalURL: value,
+		}
+		result = append(result, item)
+	}
+
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(resultJSON)
 }
 
 // Start запускает сервер
