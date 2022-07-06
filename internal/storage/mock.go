@@ -14,8 +14,12 @@ func (s mockStorage) Read(value string) (string, error) {
 	return "", err
 }
 
-func (s mockStorage) Write(key, value string) error {
+func (s mockStorage) Write(id, key, value string) error {
 	return nil
+}
+
+func (s mockStorage) ReadAll(id string) (map[string]string, error) {
+	return nil, nil
 }
 
 func NewMock() Storage {

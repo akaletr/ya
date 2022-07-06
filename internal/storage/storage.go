@@ -5,7 +5,8 @@ import (
 )
 
 type storage struct {
-	db map[string]string
+	db   map[string]string
+	byID map[string][]string
 }
 
 func (s storage) Read(value string) (string, error) {
@@ -16,9 +17,24 @@ func (s storage) Read(value string) (string, error) {
 	return "", err
 }
 
-func (s storage) Write(key, value string) error {
+func (s storage) Write(id, key, value string) error {
 	s.db[key] = value
+	if _, ok := s.byID[id]; !ok {
+		s.byID[id] = make([]string, 1)
+	}
+	s.byID[id] = append(s.byID[id], key)
 	return nil
+}
+
+func (s storage) ReadAll(id string) (map[string]string, error) {
+	if keys, ok := s.byID[id]; ok {
+		result := make(map[string]string)
+		for _, key := range keys {
+			result[key] = s.db[key]
+		}
+		return result, nil
+	}
+	return nil, errors.New("no data")
 }
 
 func New() Storage {

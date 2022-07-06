@@ -33,7 +33,7 @@ func (fs fileStorage) Read(value string) (string, error) {
 	return "", err
 }
 
-func (fs fileStorage) Write(key, value string) error {
+func (fs fileStorage) Write(id, key, value string) error {
 	file, err := os.OpenFile(fs.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		return err
@@ -45,6 +45,10 @@ func (fs fileStorage) Write(key, value string) error {
 	data := fmt.Sprintf("%s|%s\n", key, value)
 	_, err = file.Write([]byte(data))
 	return err
+}
+
+func (fs fileStorage) ReadAll(id string) (map[string]string, error) {
+	return nil, nil
 }
 
 func NewFileStorage(path string) Storage {

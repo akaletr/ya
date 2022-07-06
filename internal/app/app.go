@@ -1,7 +1,6 @@
 package app
 
 import (
-	"cmd/shortener/main.go/internal/auth"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"cmd/shortener/main.go/internal/auth"
 	"cmd/shortener/main.go/internal/config"
 	"cmd/shortener/main.go/internal/gziper"
 	"cmd/shortener/main.go/internal/model"
@@ -28,9 +28,9 @@ type app struct {
 
 // GetURL возвращает в ответе реальный url
 func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
-	ID := chi.URLParam(r, "id")
+	key := chi.URLParam(r, "key")
 
-	long, err := app.db.Read(ID)
+	long, err := app.db.Read(key)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -46,6 +46,16 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		c = &http.Cookie{}
+	}
+
+	id, err := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
 	longBS, err := io.ReadAll(r.Body)
 	defer func() {
 		err = r.Body.Close()
@@ -68,7 +78,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := app.convertURLToKey(longBS)
-	err = app.db.Write(key, string(longBS))
+	err = app.db.Write(id, key, string(longBS))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println(err)
@@ -86,6 +96,16 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 
 // Shorten обрабатываут запрос и формирует ответ в json
 func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		c = &http.Cookie{}
+	}
+
+	id, err := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
 	body, err := io.ReadAll(r.Body)
 	defer func() {
 		_ = r.Body.Close()
@@ -110,7 +130,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := app.convertURLToKey([]byte(data.URL))
-	err = app.db.Write(key, data.URL)
+	err = app.db.Write(id, key, data.URL)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -143,7 +163,7 @@ func (app *app) Start() error {
 	router := chi.NewRouter()
 
 	router.Use(gziper.GzipHandle, app.auth.CookieHandler)
-	router.Get("/{id}", app.GetURL)
+	router.Get("/{key}", app.GetURL)
 	router.Post("/", app.AddURL)
 	router.Post("/api/shorten", app.Shorten)
 	router.Get("/api/user/urls", app.GetAllURLs)
