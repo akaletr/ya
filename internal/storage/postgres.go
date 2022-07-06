@@ -66,8 +66,39 @@ func (p postgresDatabase) Write(id, key, value string) error {
 }
 
 func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
-	//TODO implement me
-	panic("implement me")
+	db, err := sql.Open("postgres", p.connectionString)
+	if err != nil {
+		return map[string]string{}, err
+	}
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+	rows, err := db.Query("select long from hello where id=? ", id)
+	if err != nil {
+		return map[string]string{}, err
+	}
+
+	// обязательно закрываем перед возвратом функции
+	defer rows.Close()
+
+	// пробегаем по всем записям
+	l := map[string]string{}
+	for rows.Next() {
+		var short, long string
+		rows.Scan(&short, &long)
+		l[short] = long
+		fmt.Println(l)
+	}
+
+	// проверяем на ошибки
+	err = rows.Err()
+	if err != nil {
+		return map[string]string{}, err
+	}
+	return l, nil
 }
 
 func NewPostgresDatabase(connectionString string) Storage {
