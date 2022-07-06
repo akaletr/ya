@@ -274,6 +274,13 @@ func (app *app) validateURL(URL []byte) error {
 
 // New возвращает новый экземпляр приложения
 func New(cfg config.Config) App {
+	if cfg.DatabaseDSN != "" {
+		return &app{
+			db:   storage.NewPostgresDatabase(cfg.DatabaseDSN),
+			cfg:  cfg,
+			auth: auth.New(cfg.SecretKey),
+		}
+	}
 
 	if cfg.FileStoragePath != "" {
 		return &app{
