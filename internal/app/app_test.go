@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmd/shortener/main.go/internal/auth"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -21,8 +22,9 @@ func TestNew(t *testing.T) {
 
 	name := "create app test"
 	want := &app{
-		db:  storage.New(),
-		cfg: cfg,
+		db:   storage.New(),
+		cfg:  cfg,
+		auth: auth.New(""),
 	}
 
 	t.Run(name, func(t *testing.T) {
