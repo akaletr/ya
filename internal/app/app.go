@@ -134,14 +134,19 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
+
+}
+
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
 
-	router.Use(gziper.GzipHandle)
+	router.Use(gziper.GzipHandle, app.auth.CookieHandler)
 	router.Get("/{id}", app.GetURL)
 	router.Post("/", app.AddURL)
 	router.Post("/api/shorten", app.Shorten)
+	router.Get("/api/user/urls", app.GetAllURLs)
 
 	server := http.Server{
 		Addr:    app.cfg.ServerAddress,
