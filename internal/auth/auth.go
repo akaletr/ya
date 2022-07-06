@@ -23,32 +23,6 @@ func New(key string) Auth {
 	}
 }
 
-// CookieHandler читает куки и устанавливает, если их нет
-func (auth *auth) CookieHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("user")
-
-		if err != nil || !auth.Check(cookie) {
-			value, e := auth.NewToken()
-			if e != nil {
-				log.Println(err)
-				//w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			cookie = &http.Cookie{
-				Name:  "user",
-				Value: hex.EncodeToString(value),
-				Path:  "/",
-			}
-			http.SetCookie(w, cookie)
-			next.ServeHTTP(w, r)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
 // Check проверяет подпись
 func (auth *auth) Check(cookie *http.Cookie) bool {
 	data, err := hex.DecodeString(cookie.Value)

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -19,6 +20,7 @@ import (
 	"cmd/shortener/main.go/internal/storage"
 
 	"github.com/go-chi/chi/v5"
+	_ "github.com/lib/pq"
 )
 
 type app struct {
@@ -217,6 +219,23 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 	w.Write(resultJSON)
 }
 
+func (app *app) DatabasePing(w http.ResponseWriter, r *http.Request) {
+	if app.cfg.DatabaseDSN != "" {
+		db, err := sql.Open("postgres", app.cfg.DatabaseDSN)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = db.Ping()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
@@ -227,6 +246,7 @@ func (app *app) Start() error {
 	router.Post("/", app.AddURL)
 	router.Post("/api/shorten", app.Shorten)
 	router.Get("/api/user/urls", app.GetAllURLs)
+	router.Get("/ping", app.DatabasePing)
 
 	server := http.Server{
 		Addr:    app.cfg.ServerAddress,
