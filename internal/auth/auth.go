@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -81,11 +82,11 @@ func (auth *auth) NewToken() ([]byte, error) {
 
 func (auth *auth) GetID(cookie *http.Cookie) (string, error) {
 	if cookie.Value == "" {
-		return "default", nil
+		return "", errors.New("")
 	}
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
-		return "default", err
+		return "", err
 	}
 
 	return strconv.FormatUint(uint64(binary.BigEndian.Uint32(data[:4])), 10), nil

@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
@@ -47,8 +48,20 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
-	if err != nil {
-		c = &http.Cookie{}
+	if err != nil || !app.auth.Check(c) {
+		value, e := app.auth.NewToken()
+		if e != nil {
+			log.Println(err)
+			//w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		c = &http.Cookie{
+			Name:  "user",
+			Value: hex.EncodeToString(value),
+			Path:  "/",
+		}
+		http.SetCookie(w, c)
 	}
 
 	id, err := app.auth.GetID(c)
@@ -97,8 +110,20 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 // Shorten обрабатываут запрос и формирует ответ в json
 func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
-	if err != nil {
-		c = &http.Cookie{}
+	if err != nil || !app.auth.Check(c) {
+		value, e := app.auth.NewToken()
+		if e != nil {
+			log.Println(err)
+			//w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		c = &http.Cookie{
+			Name:  "user",
+			Value: hex.EncodeToString(value),
+			Path:  "/",
+		}
+		http.SetCookie(w, c)
 	}
 
 	id, err := app.auth.GetID(c)
@@ -199,8 +224,8 @@ func (app *app) Start() error {
 	router.Use(gziper.GzipHandle)
 
 	router.Get("/{key}", app.GetURL)
-	router.With(app.auth.CookieHandler).Post("/", app.AddURL)
-	router.With(app.auth.CookieHandler).Post("/api/shorten", app.Shorten)
+	router.Post("/", app.AddURL)
+	router.Post("/api/shorten", app.Shorten)
 	router.Get("/api/user/urls", app.GetAllURLs)
 
 	server := http.Server{
