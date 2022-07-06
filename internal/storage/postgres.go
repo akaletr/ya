@@ -56,7 +56,7 @@ func (p postgresDatabase) Write(id, key, value string) error {
 		}
 	}()
 
-	_, err = db.Exec("create table data (id int, short varchar(30), long text)")
+	_, err = db.Exec("create table data (id int, short varchar(30), long varchar(130))")
 	if err != nil {
 
 	}
