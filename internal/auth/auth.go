@@ -27,7 +27,7 @@ func (auth *auth) CookieHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("user")
 
-		if err != nil || !auth.Check(cookie) {
+		if err != nil && !auth.Check(cookie) {
 			value, e := auth.NewToken()
 			if e != nil {
 				log.Println(err)
