@@ -86,7 +86,7 @@ func (auth *auth) GetID(cookie *http.Cookie) (string, error) {
 	}
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
-		return "", err
+		return "default", err
 	}
 
 	return strconv.FormatUint(uint64(binary.BigEndian.Uint32(data[:4])), 10), nil

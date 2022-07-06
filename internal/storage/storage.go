@@ -19,8 +19,8 @@ func (s storage) Read(value string) (string, error) {
 
 func (s storage) Write(id, key, value string) error {
 	s.db[key] = value
-	if _, ok := s.byID[id]; !ok {
-		s.byID[id] = make([]string, 1)
+	if s.byID[id] == nil {
+		s.byID[id] = []string{}
 	}
 	s.byID[id] = append(s.byID[id], key)
 	return nil
@@ -39,6 +39,7 @@ func (s storage) ReadAll(id string) (map[string]string, error) {
 
 func New() Storage {
 	return &storage{
-		db: make(map[string]string),
+		db:   make(map[string]string),
+		byID: map[string][]string{},
 	}
 }
