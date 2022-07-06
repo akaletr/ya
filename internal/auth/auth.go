@@ -27,7 +27,7 @@ func (auth *auth) CookieHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("user")
 
-		if err != nil && !auth.Check(cookie) {
+		if err != nil || !auth.Check(cookie) {
 			value, e := auth.NewToken()
 			if e != nil {
 				log.Println(err)
@@ -53,10 +53,8 @@ func (auth *auth) Check(cookie *http.Cookie) bool {
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
 		log.Println(err)
+		return false
 	}
-
-	id := binary.BigEndian.Uint32(data[:4])
-	log.Println("id", id)
 
 	h := hmac.New(sha256.New, []byte(auth.Key))
 	h.Write(data[:4])
