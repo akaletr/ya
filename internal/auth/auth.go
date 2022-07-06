@@ -38,6 +38,7 @@ func (auth *auth) CookieHandler(next http.Handler) http.Handler {
 			cookie = &http.Cookie{
 				Name:  "user",
 				Value: hex.EncodeToString(value),
+				Path:  "/",
 			}
 			http.SetCookie(w, cookie)
 			next.ServeHTTP(w, r)
