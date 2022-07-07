@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
@@ -216,7 +217,10 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(resultJSON)
+	_, err = w.Write(resultJSON)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (app *app) DatabasePing(w http.ResponseWriter, r *http.Request) {
@@ -236,6 +240,28 @@ func (app *app) DatabasePing(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	defer func() {
+		err = r.Body.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var data model.BatchRequest
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+}
+
 // Start запускает сервер
 func (app *app) Start() error {
 	router := chi.NewRouter()
@@ -245,6 +271,7 @@ func (app *app) Start() error {
 	router.Get("/{key}", app.GetURL)
 	router.Post("/", app.AddURL)
 	router.Post("/api/shorten", app.Shorten)
+	router.Post("/api/shorten/batch", app.Batch)
 	router.Get("/api/user/urls", app.GetAllURLs)
 	router.Get("/ping", app.DatabasePing)
 
