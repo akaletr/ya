@@ -21,7 +21,7 @@ func (p postgresDatabase) Read(value string) (string, error) {
 			log.Println(err)
 		}
 	}()
-	rows, err := db.Query("select long from hello where short=? ", value)
+	rows, err := db.Query("select long from data where short=? ", value)
 	if err != nil {
 		return "", err
 	}
@@ -76,7 +76,7 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 			log.Println(err)
 		}
 	}()
-	rows, err := db.Query("select long from hello where id=? ", id)
+	rows, err := db.Query("select long from data where id=? ", id)
 	if err != nil {
 		return map[string]string{}, err
 	}
