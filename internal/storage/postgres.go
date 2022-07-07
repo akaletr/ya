@@ -45,6 +45,11 @@ func (p postgresDatabase) Read(value string) (string, error) {
 		}
 	}
 
+	err = rows.Err()
+	if err != nil {
+		return "", err
+	}
+
 	return long, nil
 }
 
@@ -109,6 +114,11 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 			continue
 		}
 		result[short] = long
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
 	}
 
 	return result, nil
