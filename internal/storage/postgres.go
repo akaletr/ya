@@ -56,12 +56,16 @@ func (p postgresDatabase) Write(id, key, value string) error {
 		}
 	}()
 
-	_, err = db.Exec("create table data (id int, short varchar(30), long varchar(130))")
+	_, err = db.Exec("create table data (id varchar(30), short varchar(30), long varchar(130))")
 	if err != nil {
-
+		fmt.Println(err)
 	}
-
-	db.Exec("insert into data values (?, ?, ?)", id, key, value)
+	str := fmt.Sprintf("insert into data values (%s, '%s', '%s')", id, key, value)
+	//db.Exec("insert into data values (?, ?, ?)", id, key, value)
+	_, err = db.Exec(str)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return nil
 }
 
@@ -76,22 +80,37 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 			log.Println(err)
 		}
 	}()
-	rows, err := db.Query("select long from data where id=? ", id)
+
+	str := fmt.Sprintf("select * from data where id='%s'", id)
+	rows, err := db.Query(str)
+	//rows, err := db.Query("select * from data where id=? ", id)
 	if err != nil {
+		fmt.Println(err)
 		return map[string]string{}, err
 	}
 
 	// обязательно закрываем перед возвратом функции
 	defer rows.Close()
 
-	// пробегаем по всем записям
 	l := map[string]string{}
 	for rows.Next() {
-		var short, long string
-		rows.Scan(&short, &long)
+		var id1, short, long string
+		err := rows.Scan(&id1, &short, &long)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 		l[short] = long
-		fmt.Println(l)
 	}
+
+	// пробегаем по всем записям
+
+	//for rows.Next() {
+	//	var short, long string
+	//	rows.Scan(&short, &long)
+	//	l[short] = long
+	//	fmt.Println(l)
+	//}
 
 	// проверяем на ошибки
 	err = rows.Err()
