@@ -22,7 +22,7 @@ func (p postgresDatabase) Read(value string) (string, error) {
 		}
 	}()
 
-	str := fmt.Sprintf("select long from data where short=%s", value)
+	str := fmt.Sprintf("select long from data where short='%s'", value)
 	rows, err := db.Query(str)
 	if err != nil {
 		log.Println(err)
