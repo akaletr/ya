@@ -1,7 +1,6 @@
 package app
 
 import (
-	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -221,16 +220,18 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 
 func (app *app) DatabasePing(w http.ResponseWriter, r *http.Request) {
 	if app.cfg.DatabaseDSN != "" {
-		db, err := sql.Open("postgres", app.cfg.DatabaseDSN)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		err = db.Ping()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		log.Println(app.cfg.DatabaseDSN)
+		return
+		//db, err := sql.Open("postgres", app.cfg.DatabaseDSN)
+		//if err != nil {
+		//	w.WriteHeader(http.StatusInternalServerError)
+		//	return
+		//}
+		//err = db.Ping()
+		//if err != nil {
+		//	w.WriteHeader(http.StatusInternalServerError)
+		//	return
+		//}
 	}
 
 	w.WriteHeader(http.StatusOK)
