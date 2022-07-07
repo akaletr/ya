@@ -25,6 +25,7 @@ func (p postgresDatabase) Read(value string) (string, error) {
 	str := fmt.Sprintf("select long from data where short=%s", value)
 	rows, err := db.Query(str)
 	if err != nil {
+		log.Println(err)
 		return "", err
 	}
 
@@ -88,7 +89,7 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 	str := fmt.Sprintf("select short, long from data where id='%s'", id)
 	rows, err := db.Query(str)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return map[string]string{}, err
 	}
 
@@ -102,7 +103,7 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 	result := map[string]string{}
 	for rows.Next() {
 		var short, long string
-		err := rows.Scan(&short, &long)
+		err = rows.Scan(&short, &long)
 		if err != nil {
 			fmt.Println(err)
 			continue
