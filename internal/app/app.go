@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/lib/pq"
 	"hash/crc32"
 	"io"
 	"io/ioutil"
@@ -96,6 +97,12 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	key := app.convertURLToKey(longBS)
 	err = app.db.Write(id, key, string(longBS))
 	if err != nil {
+		err, _ := err.(*pq.Error)
+		if err.Code == "23505" {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println(err)
 		return
@@ -160,6 +167,13 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	key := app.convertURLToKey([]byte(data.URL))
 	err = app.db.Write(id, key, data.URL)
 	if err != nil {
+		err, _ := err.(*pq.Error)
+		log.Println(err.Code)
+		if err.Code == "23505" {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -178,6 +192,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 
 	_, err = w.Write(respJSON)
 	if err != nil {
+
 		log.Println(err)
 	}
 }
@@ -292,6 +307,15 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 
 	err = app.db.WriteBatch(dataBatch)
 	if err != nil {
+
+		err, _ := err.(*pq.Error)
+		log.Println(err.Code)
+		if err.Code == "23505" {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
