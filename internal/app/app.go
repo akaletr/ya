@@ -92,7 +92,6 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
 
 	key := app.convertURLToKey(longBS)
 	err = app.db.Write(id, key, string(longBS))
@@ -107,6 +106,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusConflict)
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
 
 	_, err = w.Write([]byte(shortURL))
