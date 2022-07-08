@@ -173,8 +173,8 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusConflict)
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
 	}
 
 	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
