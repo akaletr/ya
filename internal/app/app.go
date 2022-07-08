@@ -97,14 +97,13 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	err = app.db.Write(id, key, string(longBS))
 	if err != nil {
 		err, _ := err.(*pq.Error)
-		if err.Code == "23505" {
-			log.Println(err.Error())
-			w.WriteHeader(http.StatusConflict)
+		log.Println(err.Code)
+		if err.Code != "23505" {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println(err)
-		return
+		w.WriteHeader(http.StatusConflict)
 	}
 
 	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
@@ -168,13 +167,12 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err, _ := err.(*pq.Error)
 		log.Println(err.Code)
-		if err.Code == "23505" {
-			log.Println(err.Error())
-			w.WriteHeader(http.StatusConflict)
+		if err.Code != "23505" {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		w.WriteHeader(http.StatusConflict)
 	}
 
 	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
@@ -306,18 +304,14 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 
 	err = app.db.WriteBatch(dataBatch)
 	if err != nil {
-
 		err, _ := err.(*pq.Error)
 		log.Println(err.Code)
-		if err.Code == "23505" {
-			log.Println(err.Error())
-			w.WriteHeader(http.StatusConflict)
+		if err.Code != "23505" {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		w.WriteHeader(http.StatusConflict)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
