@@ -32,8 +32,8 @@ type BatchResponseItem struct {
 type DataBatch []DataBatchItem
 
 type DataBatchItem struct {
-	ID            string
-	Short         string
-	Long          string
-	CorrelationID string
+	ID          string
+	Short       string
+	Long        string
+	Correlation string
 }
