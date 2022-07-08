@@ -92,6 +92,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
+	w.WriteHeader(http.StatusCreated)
 
 	key := app.convertURLToKey(longBS)
 	err = app.db.Write(id, key, string(longBS))
@@ -108,7 +109,6 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 
 	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
 
-	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(shortURL))
 	if err != nil {
 		log.Println(err)
@@ -161,6 +161,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
+	w.WriteHeader(http.StatusCreated)
 
 	key := app.convertURLToKey([]byte(data.URL))
 	err = app.db.Write(id, key, data.URL)
@@ -173,6 +174,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusConflict)
+		w.Header().Set("Content-Type", "application/json")
 	}
 
 	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
@@ -183,9 +185,6 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
 
 	_, err = w.Write(respJSON)
 	if err != nil {
@@ -311,6 +310,7 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
 	}
 
