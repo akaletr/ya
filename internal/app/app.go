@@ -241,6 +241,16 @@ func (app *app) DatabasePing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		c = &http.Cookie{}
+	}
+
+	id, err := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
 	body, err := ioutil.ReadAll(r.Body)
 	defer func() {
 		err = r.Body.Close()
@@ -260,6 +270,47 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dataBatch := model.DataBatch{}
+	result := model.BatchResponse{}
+
+	for _, item := range data {
+		short := app.convertURLToKey([]byte(item.OriginalURL))
+		resultItem := model.BatchResponseItem{
+			CorrelationID: item.CorrelationID,
+			ShortURL:      fmt.Sprintf("%s/%s", app.cfg.BaseURL, short),
+		}
+
+		dataBatchItem := model.DataBatchItem{
+			ID:    id,
+			Short: short,
+			Long:  item.OriginalURL,
+		}
+
+		dataBatch = append(dataBatch, dataBatchItem)
+		result = append(result, resultItem)
+	}
+
+	err = app.db.WriteBatch(dataBatch)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	resultJson, err := json.Marshal(result)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(resultJson)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // Start запускает сервер

@@ -28,3 +28,12 @@ type BatchResponseItem struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
+
+type DataBatch []DataBatchItem
+
+type DataBatchItem struct {
+	ID            string
+	Short         string
+	Long          string
+	CorrelationID string
+}

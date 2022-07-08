@@ -1,6 +1,9 @@
 package storage
 
-import "errors"
+import (
+	"cmd/shortener/main.go/internal/model"
+	"errors"
+)
 
 type mockStorage struct {
 	db map[string]string
@@ -15,6 +18,10 @@ func (s mockStorage) Read(value string) (string, error) {
 }
 
 func (s mockStorage) Write(id, key, value string) error {
+	return nil
+}
+
+func (s mockStorage) WriteBatch(data model.DataBatch) error {
 	return nil
 }
 

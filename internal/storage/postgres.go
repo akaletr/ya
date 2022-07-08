@@ -1,9 +1,12 @@
 package storage
 
 import (
-	"database/sql"
+	"cmd/shortener/main.go/internal/model"
+	//"database/sql"
 	"fmt"
 	"log"
+
+	sql "github.com/jmoiron/sqlx"
 )
 
 type postgresDatabase struct {
@@ -66,7 +69,7 @@ func (p postgresDatabase) Write(id, key, value string) error {
 	}()
 
 	// если таблицы нет - создаем
-	_, err = db.Exec("create table data (id varchar(30), short varchar(60), long text)")
+	_, err = db.Exec("create table data (id varchar(30), short varchar(60), long text, correlation varchar(30))")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -75,6 +78,26 @@ func (p postgresDatabase) Write(id, key, value string) error {
 	if err != nil {
 		fmt.Println(err)
 		return err
+	}
+	return nil
+}
+
+func (p postgresDatabase) WriteBatch(data model.DataBatch) error {
+	db, err := sql.Open("postgres", p.connectionString)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+
+	_, err = db.NamedExec(`INSERT INTO data (id, short, long, correlation) 
+		VALUES (:id, :short, :long, :correlation)`, data)
+	if err != nil {
+		fmt.Println(err)
 	}
 	return nil
 }

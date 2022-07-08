@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"cmd/shortener/main.go/internal/model"
 	"errors"
 )
 
@@ -26,6 +27,9 @@ func (s storage) Write(id, key, value string) error {
 	return nil
 }
 
+func (s storage) WriteBatch(data model.DataBatch) error {
+	return nil
+}
 func (s storage) ReadAll(id string) (map[string]string, error) {
 	if keys, ok := s.byID[id]; ok {
 		result := make(map[string]string)
