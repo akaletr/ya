@@ -22,7 +22,6 @@ import (
 	"cmd/shortener/main.go/internal/storage"
 
 	"github.com/go-chi/chi/v5"
-	_ "github.com/lib/pq"
 )
 
 type app struct {
