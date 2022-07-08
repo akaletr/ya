@@ -161,7 +161,6 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
 
 	key := app.convertURLToKey([]byte(data.URL))
 	err = app.db.Write(id, key, data.URL)
@@ -176,6 +175,9 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 
 	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
 
