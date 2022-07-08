@@ -299,7 +299,7 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	resultJson, err := json.Marshal(result)
+	resultJSON, err := json.Marshal(result)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -307,7 +307,7 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write(resultJson)
+	_, err = w.Write(resultJSON)
 	if err != nil {
 		log.Println(err)
 	}
