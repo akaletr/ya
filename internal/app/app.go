@@ -378,7 +378,7 @@ func (app *app) validateURL(URL []byte) error {
 // New возвращает новый экземпляр приложения
 func New(cfg config.Config) (App, error) {
 	if cfg.DatabaseDSN != "" {
-		db, err := storage.NewPostgresDatabase(cfg.FileStoragePath)
+		db, err := storage.NewPostgresDatabase(cfg.DatabaseDSN)
 		if err != nil {
 			return &app{}, err
 		}

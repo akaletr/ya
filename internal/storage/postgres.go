@@ -1,11 +1,10 @@
 package storage
 
 import (
-	//"database/sql"
-	"fmt"
-	"log"
-
 	"cmd/shortener/main.go/internal/model"
+	"fmt"
+	"github.com/lib/pq"
+	"log"
 
 	sql "github.com/jmoiron/sqlx"
 )
@@ -96,6 +95,11 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 func (p *postgresDatabase) Start() error {
 	_, err := p.db.Exec("create table data (id varchar(30), short varchar(60) UNIQUE, long text, correlation varchar(30))")
 	if err != nil {
+		err, _ := err.(*pq.Error)
+		if err.Code == "42P07" {
+			log.Println(err)
+			return nil
+		}
 		fmt.Println(err)
 		return err
 	}
@@ -105,11 +109,11 @@ func (p *postgresDatabase) Start() error {
 
 func NewPostgresDatabase(connectionString string) (Storage, error) {
 	db, err := sql.Open("postgres", connectionString)
+
 	if err != nil {
 		return &postgresDatabase{}, err
 	}
 
-	fmt.Println("------")
 	return &postgresDatabase{
 		db: db,
 	}, nil
