@@ -85,13 +85,6 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 		return map[string]string{}, err
 	}
 
-	defer func() {
-		err = p.db.Close()
-		if err != nil {
-			log.Println(err)
-		}
-	}()
-
 	result := map[string]string{}
 	for rows.Next() {
 		var short, long string
@@ -118,12 +111,6 @@ func NewPostgresDatabase(connectionString string) Storage {
 			connectionString: connectionString,
 		}
 	}
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			log.Println(err)
-		}
-	}()
 
 	return &postgresDatabase{
 		connectionString: connectionString,
