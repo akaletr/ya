@@ -1,22 +1,22 @@
 package storage
 
 import (
-	"cmd/shortener/main.go/internal/model"
 	//"database/sql"
 	"fmt"
 	"log"
+
+	"cmd/shortener/main.go/internal/model"
 
 	sql "github.com/jmoiron/sqlx"
 )
 
 type postgresDatabase struct {
-	connectionString string
-	conn             *sql.DB
+	db *sql.DB
 }
 
 func (p postgresDatabase) Read(value string) (string, error) {
 	str := fmt.Sprintf("select long from data where short='%s'", value)
-	rows, err := p.conn.Query(str)
+	rows, err := p.db.Query(str)
 	if err != nil {
 		log.Println(err)
 		return "", err
@@ -48,7 +48,7 @@ func (p postgresDatabase) Read(value string) (string, error) {
 
 func (p postgresDatabase) Write(id, key, value string) error {
 	str := fmt.Sprintf("insert into data values (%s, '%s', '%s')", id, key, value)
-	_, err := p.conn.Exec(str)
+	_, err := p.db.Exec(str)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -57,7 +57,7 @@ func (p postgresDatabase) Write(id, key, value string) error {
 }
 
 func (p postgresDatabase) WriteBatch(data model.DataBatch) error {
-	_, err := p.conn.NamedExec(`INSERT INTO data (id, short, long, correlation) 
+	_, err := p.db.NamedExec(`INSERT INTO data (id, short, long, correlation) 
 		VALUES (:id, :short, :long, :correlation)`, data)
 	if err != nil {
 		fmt.Println(err)
@@ -68,7 +68,7 @@ func (p postgresDatabase) WriteBatch(data model.DataBatch) error {
 
 func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 	str := fmt.Sprintf("select short, long from data where id='%s'", id)
-	rows, err := p.conn.Query(str)
+	rows, err := p.db.Query(str)
 	if err != nil {
 		log.Println(err)
 		return map[string]string{}, err
@@ -93,8 +93,8 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 	return result, nil
 }
 
-func (p postgresDatabase) Start() error {
-	_, err := p.conn.Exec("create table data (id varchar(30), short varchar(60) UNIQUE, long text, correlation varchar(30))")
+func (p *postgresDatabase) Start() error {
+	_, err := p.db.Exec("create table data (id varchar(30), short varchar(60) UNIQUE, long text, correlation varchar(30))")
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -109,8 +109,8 @@ func NewPostgresDatabase(connectionString string) (Storage, error) {
 		return &postgresDatabase{}, err
 	}
 
+	fmt.Println("------")
 	return &postgresDatabase{
-		connectionString: connectionString,
-		conn:             db,
+		db: db,
 	}, nil
 }
