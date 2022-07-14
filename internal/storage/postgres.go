@@ -11,12 +11,12 @@ import (
 
 type postgresDatabase struct {
 	connectionString string
-	db               *sql.DB
+	conn             *sql.DB
 }
 
 func (p postgresDatabase) Read(value string) (string, error) {
 	str := fmt.Sprintf("select long from data where short='%s'", value)
-	rows, err := p.db.Query(str)
+	rows, err := p.conn.Query(str)
 	if err != nil {
 		log.Println(err)
 		return "", err
@@ -47,13 +47,8 @@ func (p postgresDatabase) Read(value string) (string, error) {
 }
 
 func (p postgresDatabase) Write(id, key, value string) error {
-	// если таблицы нет - создаем
-	_, err := p.db.Exec("create table data (id varchar(30), short varchar(60) UNIQUE, long text, correlation varchar(30))")
-	if err != nil {
-		fmt.Println(err)
-	}
 	str := fmt.Sprintf("insert into data values (%s, '%s', '%s')", id, key, value)
-	_, err = p.db.Exec(str)
+	_, err := p.conn.Exec(str)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -62,13 +57,7 @@ func (p postgresDatabase) Write(id, key, value string) error {
 }
 
 func (p postgresDatabase) WriteBatch(data model.DataBatch) error {
-	// если таблицы нет - создаем
-	_, err := p.db.Exec("create table data (id varchar(30), short varchar(60) UNIQUE, long text, correlation varchar(30))")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	_, err = p.db.NamedExec(`INSERT INTO data (id, short, long, correlation) 
+	_, err := p.conn.NamedExec(`INSERT INTO data (id, short, long, correlation) 
 		VALUES (:id, :short, :long, :correlation)`, data)
 	if err != nil {
 		fmt.Println(err)
@@ -79,7 +68,7 @@ func (p postgresDatabase) WriteBatch(data model.DataBatch) error {
 
 func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 	str := fmt.Sprintf("select short, long from data where id='%s'", id)
-	rows, err := p.db.Query(str)
+	rows, err := p.conn.Query(str)
 	if err != nil {
 		log.Println(err)
 		return map[string]string{}, err
@@ -104,16 +93,24 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 	return result, nil
 }
 
-func NewPostgresDatabase(connectionString string) Storage {
+func (p postgresDatabase) Start() error {
+	_, err := p.conn.Exec("create table data (id varchar(30), short varchar(60) UNIQUE, long text, correlation varchar(30))")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func NewPostgresDatabase(connectionString string) (Storage, error) {
 	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
-		return &postgresDatabase{
-			connectionString: connectionString,
-		}
+		return &postgresDatabase{}, err
 	}
 
 	return &postgresDatabase{
 		connectionString: connectionString,
-		db:               db,
-	}
+		conn:             db,
+	}, nil
 }

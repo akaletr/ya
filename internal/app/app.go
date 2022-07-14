@@ -334,6 +334,12 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 
 // Start запускает сервер
 func (app *app) Start() error {
+	// подготавливаем базу к работе
+	err := app.db.Start()
+	if err != nil {
+		return err
+	}
+
 	router := chi.NewRouter()
 
 	router.Use(gziper.GzipHandle)
@@ -370,13 +376,18 @@ func (app *app) validateURL(URL []byte) error {
 }
 
 // New возвращает новый экземпляр приложения
-func New(cfg config.Config) App {
+func New(cfg config.Config) (App, error) {
 	if cfg.DatabaseDSN != "" {
+		db, err := storage.NewPostgresDatabase(cfg.FileStoragePath)
+		if err != nil {
+			return &app{}, err
+		}
+
 		return &app{
-			db:   storage.NewPostgresDatabase(cfg.DatabaseDSN),
+			db:   db,
 			cfg:  cfg,
 			auth: auth.New(cfg.SecretKey),
-		}
+		}, nil
 	}
 
 	if cfg.FileStoragePath != "" {
@@ -384,12 +395,12 @@ func New(cfg config.Config) App {
 			db:   storage.NewFileStorage(cfg.FileStoragePath),
 			cfg:  cfg,
 			auth: auth.New(cfg.SecretKey),
-		}
+		}, nil
 	}
 
 	return &app{
 		db:   storage.New(),
 		cfg:  cfg,
 		auth: auth.New(cfg.SecretKey),
-	}
+	}, nil
 }

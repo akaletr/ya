@@ -56,6 +56,10 @@ func (fs fileStorage) WriteBatch(data model.DataBatch) error {
 	return nil
 }
 
+func (fs fileStorage) Start() error {
+	return nil
+}
+
 func NewFileStorage(path string) Storage {
 	return &fileStorage{
 		path: path,

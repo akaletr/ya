@@ -41,6 +41,10 @@ func (s storage) ReadAll(id string) (map[string]string, error) {
 	return nil, errors.New("no data")
 }
 
+func (s storage) Start() error {
+	return nil
+}
+
 func New() Storage {
 	return &storage{
 		db:   make(map[string]string),

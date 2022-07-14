@@ -29,6 +29,10 @@ func (s mockStorage) ReadAll(id string) (map[string]string, error) {
 	return nil, nil
 }
 
+func (s mockStorage) Start() error {
+	return nil
+}
+
 func NewMock() Storage {
 	storage := mockStorage{
 		db: make(map[string]string),
