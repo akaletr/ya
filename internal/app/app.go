@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
@@ -49,19 +48,9 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
-	if err != nil || !app.auth.Check(c) {
-		value, e := app.auth.NewToken()
-		if e != nil {
-			log.Println(err)
-			return
-		}
-
-		c = &http.Cookie{
-			Name:  "user",
-			Value: hex.EncodeToString(value),
-			Path:  "/",
-		}
-		http.SetCookie(w, c)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	id, err := app.auth.GetID(c)
@@ -116,20 +105,9 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 // Shorten обрабатываут запрос и формирует ответ в json
 func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
-	if err != nil || !app.auth.Check(c) {
-		value, e := app.auth.NewToken()
-		if e != nil {
-			log.Println(err)
-			//w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		c = &http.Cookie{
-			Name:  "user",
-			Value: hex.EncodeToString(value),
-			Path:  "/",
-		}
-		http.SetCookie(w, c)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	id, err := app.auth.GetID(c)
@@ -197,7 +175,8 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
 	if err != nil {
-		c = &http.Cookie{}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	id, err := app.auth.GetID(c)
@@ -213,7 +192,7 @@ func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := model.AllShortenerRequest{}
+	result := make([]model.Item, 0)
 	for key, value := range data {
 		item := model.Item{
 			ShortURL:    fmt.Sprintf("%s/%s", app.cfg.BaseURL, key),
@@ -246,7 +225,8 @@ func (app *app) DatabasePing(w http.ResponseWriter, r *http.Request) {
 func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
 	if err != nil {
-		c = &http.Cookie{}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	id, err := app.auth.GetID(c)
@@ -335,6 +315,7 @@ func (app *app) Start() error {
 	router := chi.NewRouter()
 
 	router.Use(gziper.GzipHandle)
+	router.Use(app.auth.CookieHandler)
 
 	router.Get("/{key}", app.GetURL)
 	router.Post("/", app.AddURL)

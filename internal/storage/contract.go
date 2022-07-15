@@ -9,6 +9,5 @@ type Storage interface {
 	Read(value string) (string, error)
 	Write(id, key, value string) error
 	WriteBatch(data []model.DataBatchItem) error
-
 	ReadAll(id string) (map[string]string, error)
 }

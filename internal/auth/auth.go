@@ -66,6 +66,28 @@ func (auth *auth) GetID(cookie *http.Cookie) (string, error) {
 	return strconv.FormatUint(uint64(binary.BigEndian.Uint32(data[:4])), 10), nil
 }
 
+func (auth *auth) CookieHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("user")
+		if err != nil || !auth.Check(c) {
+			value, e := auth.NewToken()
+			if e != nil {
+				log.Println(err)
+				return
+			}
+
+			c = &http.Cookie{
+				Name:  "user",
+				Value: hex.EncodeToString(value),
+				Path:  "/",
+			}
+			http.SetCookie(w, c)
+			r.AddCookie(c)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func generateRandom(size int) ([]byte, error) {
 	// генерируем случайную последовательность байт
 	b := make([]byte, size)
