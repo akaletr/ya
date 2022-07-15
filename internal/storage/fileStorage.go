@@ -52,7 +52,7 @@ func (fs fileStorage) ReadAll(id string) (map[string]string, error) {
 	return nil, nil
 }
 
-func (fs fileStorage) WriteBatch(data model.DataBatch) error {
+func (fs fileStorage) WriteBatch(data []model.DataBatchItem) error {
 	return nil
 }
 

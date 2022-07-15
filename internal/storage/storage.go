@@ -27,7 +27,7 @@ func (s storage) Write(id, key, value string) error {
 	return nil
 }
 
-func (s storage) WriteBatch(data model.DataBatch) error {
+func (s storage) WriteBatch(data []model.DataBatchItem) error {
 	return nil
 }
 func (s storage) ReadAll(id string) (map[string]string, error) {

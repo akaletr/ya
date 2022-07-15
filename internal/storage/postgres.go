@@ -62,7 +62,7 @@ func (p postgresDatabase) Write(id, key, value string) error {
 	return nil
 }
 
-func (p postgresDatabase) WriteBatch(data model.DataBatch) error {
+func (p postgresDatabase) WriteBatch(data []model.DataBatchItem) error {
 	_, err := p.db.NamedExec(`INSERT INTO data (id, short, long, correlation) 
 		VALUES (:id, :short, :long, :correlation)`, data)
 

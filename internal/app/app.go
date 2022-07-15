@@ -267,15 +267,17 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data model.BatchRequest
+	var data []model.BatchRequestItem
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	dataBatch := model.DataBatch{}
-	result := model.BatchResponse{}
+	var (
+		dataBatch []model.DataBatchItem
+		result    []model.BatchResponseItem
+	)
 
 	for _, item := range data {
 		short := app.convertURLToKey([]byte(item.OriginalURL))

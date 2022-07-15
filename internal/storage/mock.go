@@ -21,7 +21,7 @@ func (s mockStorage) Write(id, key, value string) error {
 	return nil
 }
 
-func (s mockStorage) WriteBatch(data model.DataBatch) error {
+func (s mockStorage) WriteBatch(data []model.DataBatchItem) error {
 	return nil
 }
 
