@@ -94,16 +94,16 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 
 	key := app.convertURLToKey(longBS)
 	err = app.db.Write(id, key, string(longBS))
-
 	if err != nil {
 		e, ok := err.(*storage.Error)
 		if ok && e.Code == storage.CONFLICT {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println(err)
-		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -170,10 +170,11 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		if ok && e.Code == storage.CONFLICT {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println(err)
-		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -309,10 +310,11 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 		if ok && e.Code == storage.CONFLICT {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println(err)
-		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
