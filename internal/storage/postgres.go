@@ -2,12 +2,12 @@ package storage
 
 import (
 	"fmt"
-	"github.com/lib/pq"
 	"log"
 
 	"cmd/shortener/main.go/internal/model"
 
 	sql "github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type postgresDatabase struct {
@@ -15,8 +15,7 @@ type postgresDatabase struct {
 }
 
 func (p postgresDatabase) Read(value string) (string, error) {
-	str := fmt.Sprintf("select long from data where short='%s'", value)
-	rows, err := p.db.Query(str)
+	rows, err := p.db.Query("select long from data where short=?", value)
 	if err != nil {
 		log.Println(err)
 		return "", err
@@ -47,15 +46,14 @@ func (p postgresDatabase) Read(value string) (string, error) {
 }
 
 func (p postgresDatabase) Write(id, key, value string) error {
-	str := fmt.Sprintf("insert into data values (%s, '%s', '%s')", id, key, value)
-	_, err := p.db.Exec(str)
-
+	_, err := p.db.Exec("insert into data (id, short, long)  values ($1, $2, $3)", id, key, value)
 	if err != nil {
 		// проверяем ошибку, если конфликт - возвращаем новую ошибку
 		e, ok := err.(*pq.Error)
 		if ok && e.Code == "23505" {
 			return NewError(CONFLICT, e.Error())
 		}
+		fmt.Println(e.Code)
 		return err
 	}
 
@@ -78,8 +76,7 @@ func (p postgresDatabase) WriteBatch(data []model.DataBatchItem) error {
 }
 
 func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
-	str := fmt.Sprintf("select short, long from data where id='%s'", id)
-	rows, err := p.db.Query(str)
+	rows, err := p.db.Query("select short, long from data where id=?", id)
 	if err != nil {
 		log.Println(err)
 		return map[string]string{}, err

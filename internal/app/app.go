@@ -53,7 +53,6 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		value, e := app.auth.NewToken()
 		if e != nil {
 			log.Println(err)
-			//w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
