@@ -15,7 +15,7 @@ type postgresDatabase struct {
 }
 
 func (p postgresDatabase) Read(value string) (string, error) {
-	rows, err := p.db.Query("select long from data where short=?", value)
+	rows, err := p.db.Query("select long from data where short=$1", value)
 	if err != nil {
 		log.Println(err)
 		return "", err
@@ -76,7 +76,7 @@ func (p postgresDatabase) WriteBatch(data []model.DataBatchItem) error {
 }
 
 func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
-	rows, err := p.db.Query("select short, long from data where id=?", id)
+	rows, err := p.db.Query("select short, long from data where id=$1", id)
 	if err != nil {
 		log.Println(err)
 		return map[string]string{}, err
