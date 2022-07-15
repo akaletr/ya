@@ -35,7 +35,7 @@ func (fs fileStorage) Read(value string) (string, error) {
 }
 
 func (fs fileStorage) Write(id, key, value string) error {
-	file, err := os.OpenFile(fs.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
+	file, err := os.OpenFile(fs.path, os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		return err
 	}
@@ -43,17 +43,50 @@ func (fs fileStorage) Write(id, key, value string) error {
 		_ = file.Close()
 	}()
 
-	data := fmt.Sprintf("%s|%s\n", key, value)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		d := scanner.Text()
+		if strings.Split(d, "|")[0] == key {
+			return NewError(CONFLICT, "conflict")
+		}
+	}
+
+	data := fmt.Sprintf("%s|%s|%s\n", key, value, id)
 	_, err = file.Write([]byte(data))
 	return err
 }
 
 func (fs fileStorage) ReadAll(id string) (map[string]string, error) {
-	return nil, nil
+	file, err := os.OpenFile(fs.path, os.O_RDONLY|os.O_CREATE, 0777)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	result := map[string]string{}
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		data := scanner.Text()
+		if strings.Split(data, "|")[2] == id {
+			result[strings.Split(data, "|")[0]] = strings.Split(data, "|")[1]
+		}
+	}
+
+	return result, nil
 }
 
 func (fs fileStorage) WriteBatch(data []model.DataBatchItem) error {
-	return nil
+	var e error
+	for _, item := range data {
+		err := fs.Write(item.ID, item.Short, item.Long)
+		if err != nil {
+			e = err
+		}
+	}
+	return e
 }
 
 func (fs fileStorage) Start() error {

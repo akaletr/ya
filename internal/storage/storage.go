@@ -19,6 +19,10 @@ func (s storage) Read(value string) (string, error) {
 }
 
 func (s storage) Write(id, key, value string) error {
+	if _, ok := s.db[key]; ok {
+		return NewError(CONFLICT, "conflict")
+	}
+
 	s.db[key] = value
 	if s.byID[id] == nil {
 		s.byID[id] = []string{}
@@ -28,6 +32,13 @@ func (s storage) Write(id, key, value string) error {
 }
 
 func (s storage) WriteBatch(data []model.DataBatchItem) error {
+	for _, item := range data {
+		s.db[item.Short] = item.Long
+		if s.byID[item.ID] == nil {
+			s.byID[item.ID] = []string{}
+		}
+		s.byID[item.ID] = append(s.byID[item.ID], item.Short)
+	}
 	return nil
 }
 func (s storage) ReadAll(id string) (map[string]string, error) {
