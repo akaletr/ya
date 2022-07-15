@@ -118,6 +118,10 @@ func (p postgresDatabase) Start() error {
 	return nil
 }
 
+func (p postgresDatabase) Ping() error {
+	return p.db.Ping()
+}
+
 func NewPostgresDatabase(connectionString string) (Storage, error) {
 	db, err := sql.Open("postgres", connectionString)
 

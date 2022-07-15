@@ -45,6 +45,10 @@ func (s storage) Start() error {
 	return nil
 }
 
+func (s storage) Ping() error {
+	return nil
+}
+
 func New() Storage {
 	return &storage{
 		db:   make(map[string]string),

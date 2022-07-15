@@ -60,6 +60,10 @@ func (fs fileStorage) Start() error {
 	return nil
 }
 
+func (fs fileStorage) Ping() error {
+	return nil
+}
+
 func NewFileStorage(path string) Storage {
 	return &fileStorage{
 		path: path,

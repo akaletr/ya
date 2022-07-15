@@ -33,6 +33,10 @@ func (s mockStorage) Start() error {
 	return nil
 }
 
+func (s mockStorage) Ping() error {
+	return nil
+}
+
 func NewMock() Storage {
 	storage := mockStorage{
 		db: make(map[string]string),
