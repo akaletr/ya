@@ -138,7 +138,6 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 
 	key := app.convertURLToKey([]byte(data.URL))
 	err = app.db.Write(id, key, data.URL)
-
 	if err != nil {
 		e, ok := err.(*storage.Error)
 		if ok && e.Code == storage.CONFLICT {

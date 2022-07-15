@@ -51,6 +51,9 @@ func (fs fileStorage) Write(id, key, value string) error {
 		}
 	}
 
+	if id == "" {
+		id = "1234"
+	}
 	data := fmt.Sprintf("%s|%s|%s\n", key, value, id)
 	_, err = file.Write([]byte(data))
 	return err
