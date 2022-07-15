@@ -5,6 +5,7 @@ import (
 	"cmd/shortener/main.go/internal/model"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 )
@@ -14,7 +15,7 @@ type fileStorage struct {
 }
 
 func (fs fileStorage) Read(value string) (string, error) {
-	file, err := os.OpenFile(fs.path, os.O_RDONLY|os.O_CREATE, 0777)
+	file, err := os.OpenFile(fs.path, os.O_CREATE, 0777)
 	if err != nil {
 		return "", err
 	}
@@ -50,10 +51,7 @@ func (fs fileStorage) Write(id, key, value string) error {
 			return NewError(CONFLICT, "conflict")
 		}
 	}
-
-	if id == "" {
-		id = "1234"
-	}
+	log.Println(fs.path)
 	data := fmt.Sprintf("%s|%s|%s\n", key, value, id)
 	_, err = file.Write([]byte(data))
 	return err
