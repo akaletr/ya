@@ -49,7 +49,7 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -106,7 +106,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -175,7 +175,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -225,7 +225,7 @@ func (app *app) DatabasePing(w http.ResponseWriter, r *http.Request) {
 func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("user")
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
