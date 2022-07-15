@@ -44,13 +44,13 @@ func (fs fileStorage) Write(id, key, value string) error {
 		_ = file.Close()
 	}()
 
-	//scanner := bufio.NewScanner(file)
-	//for scanner.Scan() {
-	//	d := scanner.Text()
-	//	if strings.Split(d, "|")[0] == key {
-	//		return NewError(CONFLICT, "conflict")
-	//	}
-	//}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		d := scanner.Text()
+		if strings.Split(d, "|")[0] == key {
+			return NewError(CONFLICT, "conflict")
+		}
+	}
 	log.Println(fs.path)
 	data := fmt.Sprintf("%s|%s|%s\n", key, value, id)
 	_, err = file.Write([]byte(data))
@@ -99,6 +99,9 @@ func (fs fileStorage) Ping() error {
 }
 
 func NewFileStorage(path string) Storage {
+	if strings.HasPrefix(path, "/") {
+		path = fmt.Sprintf(".%s", path)
+	}
 	return &fileStorage{
 		path: path,
 	}
