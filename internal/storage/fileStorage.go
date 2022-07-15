@@ -36,7 +36,7 @@ func (fs fileStorage) Read(value string) (string, error) {
 }
 
 func (fs fileStorage) Write(id, key, value string) error {
-	file, err := os.OpenFile(fs.path, os.O_CREATE|os.O_APPEND, 0777)
+	file, err := os.OpenFile(fs.path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		return err
 	}
@@ -99,9 +99,6 @@ func (fs fileStorage) Ping() error {
 }
 
 func NewFileStorage(path string) Storage {
-	if strings.HasPrefix(path, "/") {
-		path = fmt.Sprintf(".%s", path)
-	}
 	return &fileStorage{
 		path: path,
 	}
