@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/lib/pq"
 	"hash/crc32"
 	"io"
 	"io/ioutil"
@@ -95,15 +94,16 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 
 	key := app.convertURLToKey(longBS)
 	err = app.db.Write(id, key, string(longBS))
+
 	if err != nil {
-		err, _ := err.(*pq.Error)
-		log.Println(err.Code)
-		if err.Code != "23505" {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+		e, ok := err.(*storage.Error)
+		if ok && e.Code == storage.CONFLICT {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
 		}
-		w.WriteHeader(http.StatusConflict)
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -164,16 +164,16 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 
 	key := app.convertURLToKey([]byte(data.URL))
 	err = app.db.Write(id, key, data.URL)
+
 	if err != nil {
-		err, _ := err.(*pq.Error)
-		log.Println(err.Code)
-		if err.Code != "23505" {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+		e, ok := err.(*storage.Error)
+		if ok && e.Code == storage.CONFLICT {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusConflict)
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -305,15 +305,14 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 
 	err = app.db.WriteBatch(dataBatch)
 	if err != nil {
-		err, _ := err.(*pq.Error)
-		log.Println(err.Code)
-		if err.Code != "23505" {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+		e, ok := err.(*storage.Error)
+		if ok && e.Code == storage.CONFLICT {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusConflict)
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

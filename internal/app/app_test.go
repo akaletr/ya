@@ -28,7 +28,8 @@ func TestNew(t *testing.T) {
 	}
 
 	t.Run(name, func(t *testing.T) {
-		assert.Equal(t, want, New(cfg))
+		app, _ := New(cfg)
+		assert.Equal(t, want, app)
 	})
 }
 

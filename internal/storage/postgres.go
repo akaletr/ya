@@ -1,10 +1,11 @@
 package storage
 
 import (
-	"cmd/shortener/main.go/internal/model"
 	"fmt"
 	"github.com/lib/pq"
 	"log"
+
+	"cmd/shortener/main.go/internal/model"
 
 	sql "github.com/jmoiron/sqlx"
 )
@@ -48,18 +49,29 @@ func (p postgresDatabase) Read(value string) (string, error) {
 func (p postgresDatabase) Write(id, key, value string) error {
 	str := fmt.Sprintf("insert into data values (%s, '%s', '%s')", id, key, value)
 	_, err := p.db.Exec(str)
+
 	if err != nil {
-		fmt.Println(err)
+		// проверяем ошибку, если конфликт - возвращаем новую ошибку
+		e, ok := err.(*pq.Error)
+		if ok && e.Code == "23505" {
+			return NewError(CONFLICT, e.Error())
+		}
 		return err
 	}
+
 	return nil
 }
 
 func (p postgresDatabase) WriteBatch(data model.DataBatch) error {
 	_, err := p.db.NamedExec(`INSERT INTO data (id, short, long, correlation) 
 		VALUES (:id, :short, :long, :correlation)`, data)
+
 	if err != nil {
-		fmt.Println(err)
+		// проверяем ошибку, если конфликт - возвращаем новую ошибку
+		e, ok := err.(*pq.Error)
+		if ok && e.Code == "23505" {
+			return NewError(CONFLICT, e.Error())
+		}
 		return err
 	}
 	return nil
@@ -92,15 +104,14 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 	return result, nil
 }
 
-func (p *postgresDatabase) Start() error {
+func (p postgresDatabase) Start() error {
 	_, err := p.db.Exec("create table data (id varchar(30), short varchar(60) UNIQUE, long text, correlation varchar(30))")
 	if err != nil {
-		err, _ := err.(*pq.Error)
-		if err.Code == "42P07" {
-			log.Println(err)
+		// проверяем ошибку, если ошибка "отношение "data" уже существует" все ок
+		e, ok := err.(*pq.Error)
+		if ok && e.Code == "42P07" {
 			return nil
 		}
-		fmt.Println(err)
 		return err
 	}
 
