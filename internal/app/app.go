@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
 	"net/url"
 
+	"cmd/shortener/main.go/internal/auth"
 	"cmd/shortener/main.go/internal/config"
 	"cmd/shortener/main.go/internal/gziper"
 	"cmd/shortener/main.go/internal/model"
@@ -20,15 +22,16 @@ import (
 )
 
 type app struct {
-	db  storage.Storage
-	cfg config.Config
+	db   storage.Storage
+	cfg  config.Config
+	auth auth.Auth
 }
 
 // GetURL возвращает в ответе реальный url
 func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
-	ID := chi.URLParam(r, "id")
+	key := chi.URLParam(r, "key")
 
-	long, err := app.db.Read(ID)
+	long, err := app.db.Read(key)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -44,6 +47,16 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 
 // AddURL добавляет в базу данных пару ключ/ссылка и отправляет в ответе короткую ссылку
 func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		c = &http.Cookie{}
+	}
+
+	id, err := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
 	longBS, err := io.ReadAll(r.Body)
 	defer func() {
 		err = r.Body.Close()
@@ -66,16 +79,22 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := app.convertURLToKey(longBS)
-	err = app.db.Write(key, string(longBS))
+	err = app.db.Write(id, key, string(longBS))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println(err)
-		return
+		e, ok := err.(*storage.Error)
+		if ok && e.Code == storage.CONFLICT {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
 
-	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(shortURL))
 	if err != nil {
 		log.Println(err)
@@ -84,6 +103,16 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 
 // Shorten обрабатываут запрос и формирует ответ в json
 func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		c = &http.Cookie{}
+	}
+
+	id, err := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
 	body, err := io.ReadAll(r.Body)
 	defer func() {
 		_ = r.Body.Close()
@@ -108,11 +137,21 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := app.convertURLToKey([]byte(data.URL))
-	err = app.db.Write(key, data.URL)
+	err = app.db.Write(id, key, data.URL)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		e, ok := err.(*storage.Error)
+		if ok && e.Code == storage.CONFLICT {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 
 	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
 
@@ -123,10 +162,138 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
 	_, err = w.Write(respJSON)
+	if err != nil {
+
+		log.Println(err)
+	}
+}
+
+func (app *app) GetAllURLs(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		c = &http.Cookie{}
+	}
+
+	id, err := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	data, err := app.db.ReadAll(id)
+	if err != nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	result := make([]model.Item, 0)
+	for key, value := range data {
+		item := model.Item{
+			ShortURL:    fmt.Sprintf("%s/%s", app.cfg.BaseURL, key),
+			OriginalURL: value,
+		}
+		result = append(result, item)
+	}
+
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(resultJSON)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (app *app) DatabasePing(w http.ResponseWriter, r *http.Request) {
+	err := app.db.Ping()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		c = &http.Cookie{}
+	}
+
+	id, err := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	defer func() {
+		err = r.Body.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var data []model.BatchRequestItem
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var (
+		dataBatch []model.DataBatchItem
+		result    []model.BatchResponseItem
+	)
+
+	for _, item := range data {
+		short := app.convertURLToKey([]byte(item.OriginalURL))
+		resultItem := model.BatchResponseItem{
+			CorrelationID: item.CorrelationID,
+			ShortURL:      fmt.Sprintf("%s/%s", app.cfg.BaseURL, short),
+		}
+
+		dataBatchItem := model.DataBatchItem{
+			ID:    id,
+			Short: short,
+			Long:  item.OriginalURL,
+		}
+
+		dataBatch = append(dataBatch, dataBatchItem)
+		result = append(result, resultItem)
+	}
+
+	err = app.db.WriteBatch(dataBatch)
+	if err != nil {
+		e, ok := err.(*storage.Error)
+		if ok && e.Code == storage.CONFLICT {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(resultJSON)
 	if err != nil {
 		log.Println(err)
 	}
@@ -134,12 +301,23 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 
 // Start запускает сервер
 func (app *app) Start() error {
+	// подготавливаем базу к работе
+	err := app.db.Start()
+	if err != nil {
+		return err
+	}
+
 	router := chi.NewRouter()
 
 	router.Use(gziper.GzipHandle)
-	router.Get("/{id}", app.GetURL)
+	router.Use(app.auth.CookieHandler)
+
+	router.Get("/{key}", app.GetURL)
 	router.Post("/", app.AddURL)
 	router.Post("/api/shorten", app.Shorten)
+	router.Post("/api/shorten/batch", app.Batch)
+	router.Get("/api/user/urls", app.GetAllURLs)
+	router.Get("/ping", app.DatabasePing)
 
 	server := http.Server{
 		Addr:    app.cfg.ServerAddress,
@@ -166,17 +344,31 @@ func (app *app) validateURL(URL []byte) error {
 }
 
 // New возвращает новый экземпляр приложения
-func New(cfg config.Config) App {
+func New(cfg config.Config) (App, error) {
+	if cfg.DatabaseDSN != "" {
+		db, err := storage.NewPostgresDatabase(cfg.DatabaseDSN)
+		if err != nil {
+			return &app{}, err
+		}
+
+		return &app{
+			db:   db,
+			cfg:  cfg,
+			auth: auth.New(cfg.SecretKey),
+		}, nil
+	}
 
 	if cfg.FileStoragePath != "" {
 		return &app{
-			db:  storage.NewFileStorage(cfg.FileStoragePath),
-			cfg: cfg,
-		}
+			db:   storage.NewFileStorage(cfg.FileStoragePath),
+			cfg:  cfg,
+			auth: auth.New(cfg.SecretKey),
+		}, nil
 	}
 
 	return &app{
-		db:  storage.New(),
-		cfg: cfg,
-	}
+		db:   storage.New(),
+		cfg:  cfg,
+		auth: auth.New(cfg.SecretKey),
+	}, nil
 }

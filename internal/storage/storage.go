@@ -1,11 +1,13 @@
 package storage
 
 import (
+	"cmd/shortener/main.go/internal/model"
 	"errors"
 )
 
 type storage struct {
-	db map[string]string
+	db   map[string]string
+	byID map[string][]string
 }
 
 func (s storage) Read(value string) (string, error) {
@@ -16,13 +18,51 @@ func (s storage) Read(value string) (string, error) {
 	return "", err
 }
 
-func (s storage) Write(key, value string) error {
+func (s storage) Write(id, key, value string) error {
+	if _, ok := s.db[key]; ok {
+		return NewError(CONFLICT, "conflict")
+	}
+
 	s.db[key] = value
+	if s.byID[id] == nil {
+		s.byID[id] = []string{}
+	}
+	s.byID[id] = append(s.byID[id], key)
+	return nil
+}
+
+func (s storage) WriteBatch(data []model.DataBatchItem) error {
+	for _, item := range data {
+		s.db[item.Short] = item.Long
+		if s.byID[item.ID] == nil {
+			s.byID[item.ID] = []string{}
+		}
+		s.byID[item.ID] = append(s.byID[item.ID], item.Short)
+	}
+	return nil
+}
+func (s storage) ReadAll(id string) (map[string]string, error) {
+	if keys, ok := s.byID[id]; ok {
+		result := make(map[string]string)
+		for _, key := range keys {
+			result[key] = s.db[key]
+		}
+		return result, nil
+	}
+	return nil, errors.New("no data")
+}
+
+func (s storage) Start() error {
+	return nil
+}
+
+func (s storage) Ping() error {
 	return nil
 }
 
 func New() Storage {
 	return &storage{
-		db: make(map[string]string),
+		db:   make(map[string]string),
+		byID: map[string][]string{},
 	}
 }

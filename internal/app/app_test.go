@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmd/shortener/main.go/internal/auth"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -21,12 +22,14 @@ func TestNew(t *testing.T) {
 
 	name := "create app test"
 	want := &app{
-		db:  storage.New(),
-		cfg: cfg,
+		db:   storage.New(),
+		cfg:  cfg,
+		auth: auth.New(""),
 	}
 
 	t.Run(name, func(t *testing.T) {
-		assert.Equal(t, want, New(cfg))
+		app, _ := New(cfg)
+		assert.Equal(t, want, app)
 	})
 }
 
@@ -62,6 +65,7 @@ func Test_app_AddURL(t *testing.T) {
 		cfg: config.Config{
 			BaseURL: "http://localhost:8080",
 		},
+		auth: auth.New(""),
 	}
 	handler := http.HandlerFunc(app.AddURL)
 
@@ -108,7 +112,8 @@ func Test_app_GetURL(t *testing.T) {
 	}
 
 	app := &app{
-		db: storage.NewMock(),
+		db:   storage.NewMock(),
+		auth: auth.New(""),
 	}
 
 	for _, tt := range tests {
@@ -117,7 +122,7 @@ func Test_app_GetURL(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/%s", tt.args), nil)
 
 			r := chi.NewRouter()
-			r.Get("/{id}", app.GetURL)
+			r.Get("/{key}", app.GetURL)
 			r.ServeHTTP(rec, req)
 
 			assert.NoError(t, err)
@@ -159,6 +164,7 @@ func Test_app_Shorten(t *testing.T) {
 		cfg: config.Config{
 			BaseURL: "http://localhost:8080",
 		},
+		auth: auth.New(""),
 	}
 	handler := http.HandlerFunc(app.Shorten)
 
