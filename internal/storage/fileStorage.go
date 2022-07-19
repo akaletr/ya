@@ -90,6 +90,10 @@ func (fs fileStorage) WriteBatch(data []model.DataBatchItem) error {
 	return e
 }
 
+func (fs fileStorage) Delete(note model.Note) error {
+	return nil
+}
+
 func (fs fileStorage) Start() error {
 	return nil
 }

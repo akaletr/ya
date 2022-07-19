@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmd/shortener/main.go/internal/workerpool"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"time"
 
 	"cmd/shortener/main.go/internal/auth"
 	"cmd/shortener/main.go/internal/config"
@@ -25,6 +27,7 @@ type app struct {
 	db   storage.Storage
 	cfg  config.Config
 	auth auth.Auth
+	pool *workerpool.Pool
 }
 
 // GetURL возвращает в ответе реальный url
@@ -299,6 +302,57 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (app *app) Delete(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		c = &http.Cookie{}
+	}
+
+	id, err := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	defer func() {
+		err = r.Body.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var data []string
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	for _, item := range data {
+		note := model.Note{
+			ID:    id,
+			Short: item,
+		}
+
+		job := workerpool.NewJob(app.db.Delete, note)
+		app.pool.AddJob(job)
+	}
+
+	fmt.Println(id)
+	//fmt.Println(data)
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func (app *app) deleter(data interface{}) error {
+	time.Sleep(4 * time.Second)
+	fmt.Println(data)
+	return nil
+}
+
 // Start запускает сервер
 func (app *app) Start() error {
 	// подготавливаем базу к работе
@@ -318,11 +372,14 @@ func (app *app) Start() error {
 	router.Post("/api/shorten/batch", app.Batch)
 	router.Get("/api/user/urls", app.GetAllURLs)
 	router.Get("/ping", app.DatabasePing)
+	router.Delete("/api/user/urls", app.Delete)
 
 	server := http.Server{
 		Addr:    app.cfg.ServerAddress,
 		Handler: router,
 	}
+
+	go app.pool.RunBackground()
 
 	return server.ListenAndServe()
 }
@@ -355,6 +412,7 @@ func New(cfg config.Config) (App, error) {
 			db:   db,
 			cfg:  cfg,
 			auth: auth.New(cfg.SecretKey),
+			pool: workerpool.NewPool(2),
 		}, nil
 	}
 
@@ -363,6 +421,7 @@ func New(cfg config.Config) (App, error) {
 			db:   storage.NewFileStorage(cfg.FileStoragePath),
 			cfg:  cfg,
 			auth: auth.New(cfg.SecretKey),
+			pool: workerpool.NewPool(2),
 		}, nil
 	}
 
@@ -370,5 +429,6 @@ func New(cfg config.Config) (App, error) {
 		db:   storage.New(),
 		cfg:  cfg,
 		auth: auth.New(cfg.SecretKey),
+		pool: workerpool.NewPool(2),
 	}, nil
 }

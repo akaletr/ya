@@ -3,6 +3,8 @@ package storage
 import (
 	"cmd/shortener/main.go/internal/model"
 	"errors"
+	"fmt"
+	"time"
 )
 
 type storage struct {
@@ -50,6 +52,12 @@ func (s storage) ReadAll(id string) (map[string]string, error) {
 		return result, nil
 	}
 	return nil, errors.New("no data")
+}
+
+func (s storage) Delete(note model.Note) error {
+	time.Sleep(time.Second * 4)
+	fmt.Println(note)
+	return nil
 }
 
 func (s storage) Start() error {

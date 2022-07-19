@@ -10,4 +10,5 @@ type Storage interface {
 	Write(id, key, value string) error
 	WriteBatch(data []model.DataBatchItem) error
 	ReadAll(id string) (map[string]string, error)
+	Delete(note model.Note) error
 }

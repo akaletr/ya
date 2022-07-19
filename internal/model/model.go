@@ -29,3 +29,11 @@ type DataBatchItem struct {
 	Long        string
 	Correlation string
 }
+
+type Note struct {
+	ID          string `json:"id"`
+	Short       string `json:"short"`
+	Long        string `json:"long"`
+	Correlation string `json:"correlation"`
+	Deleted     bool   `json:"deleted"`
+}

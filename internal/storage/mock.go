@@ -29,6 +29,10 @@ func (s mockStorage) ReadAll(id string) (map[string]string, error) {
 	return nil, nil
 }
 
+func (s mockStorage) Delete(note model.Note) error {
+	return nil
+}
+
 func (s mockStorage) Start() error {
 	return nil
 }

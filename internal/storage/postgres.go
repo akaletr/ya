@@ -30,8 +30,9 @@ func (p postgresDatabase) Read(value string) (string, error) {
 
 	// пробегаем по всем записям
 	long := ""
+	deleted := false
 	for rows.Next() {
-		err = rows.Scan(&long)
+		err = rows.Scan(&long, &deleted)
 		if err != nil {
 			return "", err
 		}
@@ -101,8 +102,22 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 	return result, nil
 }
 
+func (p postgresDatabase) Delete(note model.Note) error {
+	_, err := p.db.Exec("update data set deleted = $1 where id = $2 and short = $3", true, note.ID, note.Short)
+	if err != nil {
+		// проверяем ошибку, если ошибка "отношение "data" уже существует" все ок
+		e, ok := err.(*pq.Error)
+		if ok && e.Code == "42P07" {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (p postgresDatabase) Start() error {
-	_, err := p.db.Exec("create table data (id varchar(30), short varchar(60) UNIQUE, long text, correlation varchar(30))")
+	_, err := p.db.Exec("create table data (id varchar(30), short varchar(60) UNIQUE, long text, correlation varchar(30), deleted bool)")
 	if err != nil {
 		// проверяем ошибку, если ошибка "отношение "data" уже существует" все ок
 		e, ok := err.(*pq.Error)
