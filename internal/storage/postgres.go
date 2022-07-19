@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"fmt"
+	sql1 "database/sql"
 	"log"
 
 	"cmd/shortener/main.go/internal/model"
@@ -30,15 +30,15 @@ func (p postgresDatabase) Read(value string) (model.Note, error) {
 
 	// пробегаем по всем записям
 	long := ""
-	deleted := false
+	// беру из пакета database/sql тип для чтения типа bool из базы
+	deleted := sql1.NullBool{}
+
 	for rows.Next() {
 		err = rows.Scan(&long, &deleted)
 		if err != nil {
-			fmt.Println(long)
 			return model.Note{}, err
 		}
 	}
-	fmt.Println(deleted)
 
 	err = rows.Err()
 	if err != nil {
@@ -47,19 +47,18 @@ func (p postgresDatabase) Read(value string) (model.Note, error) {
 
 	return model.Note{
 		Long:    long,
-		Deleted: deleted,
+		Deleted: deleted.Bool,
 	}, nil
 }
 
 func (p postgresDatabase) Write(note model.Note) error {
-	_, err := p.db.Exec("insert into data (id, short, long)  values ($1, $2, $3)", note.ID, note.Short, note.Long)
+	_, err := p.db.Exec("insert into data (id, short, long, deleted)  values ($1, $2, $3, false)", note.ID, note.Short, note.Long)
 	if err != nil {
 		// проверяем ошибку, если конфликт - возвращаем новую ошибку
 		e, ok := err.(*pq.Error)
 		if ok && e.Code == "23505" {
 			return NewError(CONFLICT, e.Error())
 		}
-		fmt.Println(e.Code)
 		return err
 	}
 
@@ -93,7 +92,6 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 		var short, long string
 		err = rows.Scan(&short, &long)
 		if err != nil {
-			fmt.Println(err)
 			continue
 		}
 		result[short] = long

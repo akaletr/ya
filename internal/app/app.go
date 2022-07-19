@@ -1,6 +1,11 @@
 package app
 
 import (
+	"cmd/shortener/main.go/internal/auth"
+	"cmd/shortener/main.go/internal/config"
+	"cmd/shortener/main.go/internal/gziper"
+	"cmd/shortener/main.go/internal/model"
+	"cmd/shortener/main.go/internal/storage"
 	"cmd/shortener/main.go/internal/workerpool"
 	"encoding/base64"
 	"encoding/json"
@@ -12,13 +17,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
-	"time"
-
-	"cmd/shortener/main.go/internal/auth"
-	"cmd/shortener/main.go/internal/config"
-	"cmd/shortener/main.go/internal/gziper"
-	"cmd/shortener/main.go/internal/model"
-	"cmd/shortener/main.go/internal/storage"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -44,7 +42,6 @@ func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusGone)
 		return
 	}
-
 	w.Header().Set("Location", note.Long)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 	_, err = w.Write([]byte(note.Long))
@@ -358,15 +355,7 @@ func (app *app) Delete(w http.ResponseWriter, r *http.Request) {
 		app.pool.AddJob(job)
 	}
 
-	fmt.Println(id)
-	//fmt.Println(data)
 	w.WriteHeader(http.StatusAccepted)
-}
-
-func (app *app) deleter(data interface{}) error {
-	time.Sleep(4 * time.Second)
-	fmt.Println(data)
-	return nil
 }
 
 // Start запускает сервер

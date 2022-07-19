@@ -3,7 +3,6 @@ package storage
 import (
 	"cmd/shortener/main.go/internal/model"
 	"errors"
-	"fmt"
 )
 
 type storage struct {
@@ -65,7 +64,6 @@ func (s storage) Delete(note model.Note) error {
 		noteTemp := s.db[note.Short]
 		noteTemp.Deleted = true
 		s.db[note.Short] = noteTemp
-		fmt.Println(s.db[note.Short])
 	}
 	return nil
 }

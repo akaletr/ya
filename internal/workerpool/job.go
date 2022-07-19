@@ -1,8 +1,9 @@
 package workerpool
 
 import (
-	"cmd/shortener/main.go/internal/model"
 	"fmt"
+
+	"cmd/shortener/main.go/internal/model"
 )
 
 type Job struct {
