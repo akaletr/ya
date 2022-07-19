@@ -20,7 +20,8 @@ func GetConfig() (Config, error) {
 		BaseURL:         "http://localhost:8080",
 		FileStoragePath: "",
 		SecretKey:       "yandex",
-		DatabaseDSN:     "user=postgres password=1q2w3e4r5t dbname=postgres sslmode=disable",
+		//DatabaseDSN:     "user=postgres password=1q2w3e4r5t dbname=postgres sslmode=disable",
+		DatabaseDSN: "",
 	}
 
 	// берем конфиг из окружения

@@ -34,15 +34,20 @@ type app struct {
 func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "key")
 
-	long, err := app.db.Read(key)
+	note, err := app.db.Read(key)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Location", long)
+	if note.Deleted {
+		w.WriteHeader(http.StatusGone)
+		return
+	}
+
+	w.Header().Set("Location", note.Long)
 	w.WriteHeader(http.StatusTemporaryRedirect)
-	_, err = w.Write([]byte(long))
+	_, err = w.Write([]byte(note.Long))
 	if err != nil {
 		log.Println(err)
 	}
@@ -81,8 +86,14 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := app.convertURLToKey(longBS)
-	err = app.db.Write(id, key, string(longBS))
+	short := app.convertURLToKey(longBS)
+
+	note := model.Note{
+		ID:    id,
+		Short: short,
+		Long:  string(longBS),
+	}
+	err = app.db.Write(note)
 	if err != nil {
 		e, ok := err.(*storage.Error)
 		if ok && e.Code == storage.CONFLICT {
@@ -96,7 +107,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
+	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, note.Short)
 
 	_, err = w.Write([]byte(shortURL))
 	if err != nil {
@@ -139,8 +150,13 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := app.convertURLToKey([]byte(data.URL))
-	err = app.db.Write(id, key, data.URL)
+	short := app.convertURLToKey([]byte(data.URL))
+	note := model.Note{
+		ID:    id,
+		Short: short,
+		Long:  data.URL,
+	}
+	err = app.db.Write(note)
 	if err != nil {
 		e, ok := err.(*storage.Error)
 		if ok && e.Code == storage.CONFLICT {
@@ -156,7 +172,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
+	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, short)
 
 	resp := model.ShortenerResponse{Result: shortURL}
 	respJSON, err := json.Marshal(resp)

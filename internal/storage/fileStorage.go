@@ -3,21 +3,19 @@ package storage
 import (
 	"bufio"
 	"cmd/shortener/main.go/internal/model"
+	"encoding/json"
 	"errors"
-	"fmt"
-	"log"
 	"os"
-	"strings"
 )
 
 type fileStorage struct {
 	path string
 }
 
-func (fs fileStorage) Read(value string) (string, error) {
+func (fs fileStorage) Read(value string) (model.Note, error) {
 	file, err := os.OpenFile(fs.path, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
-		return "", err
+		return model.Note{}, err
 	}
 	defer func() {
 		_ = file.Close()
@@ -25,17 +23,24 @@ func (fs fileStorage) Read(value string) (string, error) {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		data := scanner.Text()
-		if strings.Split(data, "|")[0] == value {
-			return strings.Split(data, "|")[1], nil
+		noteJSON := scanner.Text()
+
+		noteTemp := model.Note{}
+		err = json.Unmarshal([]byte(noteJSON), &noteTemp)
+		if err != nil {
+			return model.Note{}, err
+		}
+
+		if noteTemp.ID == value {
+			return noteTemp, nil
 		}
 	}
 
 	err = errors.New("error: there is no url in database")
-	return "", err
+	return model.Note{}, err
 }
 
-func (fs fileStorage) Write(id, key, value string) error {
+func (fs fileStorage) Write(note model.Note) error {
 	file, err := os.OpenFile(fs.path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		return err
@@ -46,14 +51,20 @@ func (fs fileStorage) Write(id, key, value string) error {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		d := scanner.Text()
-		if strings.Split(d, "|")[0] == key {
+		noteJSON := scanner.Text()
+		noteTemp := model.Note{}
+		err = json.Unmarshal([]byte(noteJSON), &noteTemp)
+		if err != nil {
+			return err
+		}
+
+		if note.Short == noteTemp.Short {
 			return NewError(CONFLICT, "conflict")
 		}
 	}
-	log.Println(fs.path)
-	data := fmt.Sprintf("%s|%s|%s\n", key, value, id)
-	_, err = file.Write([]byte(data))
+
+	noteJSON, err := json.Marshal(note)
+	_, err = file.Write(noteJSON)
 	return err
 }
 
@@ -70,10 +81,11 @@ func (fs fileStorage) ReadAll(id string) (map[string]string, error) {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		data := scanner.Text()
-		if strings.Split(data, "|")[2] == id {
-			result[strings.Split(data, "|")[0]] = strings.Split(data, "|")[1]
-		}
+		noteJSON := scanner.Text()
+		noteTemp := model.Note{}
+		err = json.Unmarshal([]byte(noteJSON), &noteTemp)
+
+		result[noteTemp.Short] = noteTemp.Long
 	}
 
 	return result, nil
@@ -82,7 +94,12 @@ func (fs fileStorage) ReadAll(id string) (map[string]string, error) {
 func (fs fileStorage) WriteBatch(data []model.DataBatchItem) error {
 	var e error
 	for _, item := range data {
-		err := fs.Write(item.ID, item.Short, item.Long)
+		note := model.Note{
+			ID:    item.ID,
+			Short: item.Short,
+			Long:  item.Long,
+		}
+		err := fs.Write(note)
 		if err != nil {
 			e = err
 		}

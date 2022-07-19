@@ -14,11 +14,11 @@ type postgresDatabase struct {
 	db *sql.DB
 }
 
-func (p postgresDatabase) Read(value string) (string, error) {
-	rows, err := p.db.Query("select long from data where short=$1", value)
+func (p postgresDatabase) Read(value string) (model.Note, error) {
+	rows, err := p.db.Query("select long, deleted from data where short=$1", value)
 	if err != nil {
 		log.Println(err)
-		return "", err
+		return model.Note{}, err
 	}
 
 	defer func() {
@@ -34,20 +34,25 @@ func (p postgresDatabase) Read(value string) (string, error) {
 	for rows.Next() {
 		err = rows.Scan(&long, &deleted)
 		if err != nil {
-			return "", err
+			fmt.Println(long)
+			return model.Note{}, err
 		}
 	}
+	fmt.Println(deleted)
 
 	err = rows.Err()
 	if err != nil {
-		return "", err
+		return model.Note{}, err
 	}
 
-	return long, nil
+	return model.Note{
+		Long:    long,
+		Deleted: deleted,
+	}, nil
 }
 
-func (p postgresDatabase) Write(id, key, value string) error {
-	_, err := p.db.Exec("insert into data (id, short, long)  values ($1, $2, $3)", id, key, value)
+func (p postgresDatabase) Write(note model.Note) error {
+	_, err := p.db.Exec("insert into data (id, short, long)  values ($1, $2, $3)", note.ID, note.Short, note.Long)
 	if err != nil {
 		// проверяем ошибку, если конфликт - возвращаем новую ошибку
 		e, ok := err.(*pq.Error)
@@ -105,11 +110,6 @@ func (p postgresDatabase) ReadAll(id string) (map[string]string, error) {
 func (p postgresDatabase) Delete(note model.Note) error {
 	_, err := p.db.Exec("update data set deleted = $1 where id = $2 and short = $3", true, note.ID, note.Short)
 	if err != nil {
-		// проверяем ошибку, если ошибка "отношение "data" уже существует" все ок
-		e, ok := err.(*pq.Error)
-		if ok && e.Code == "42P07" {
-			return nil
-		}
 		return err
 	}
 
