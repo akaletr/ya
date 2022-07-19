@@ -51,9 +51,9 @@ func (fs fileStorage) Write(note model.Note) error {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		noteJSON := scanner.Text()
+		noteJSON := scanner.Bytes()
 		noteTemp := model.Note{}
-		err = json.Unmarshal([]byte(noteJSON), &noteTemp)
+		err = json.Unmarshal(noteJSON, &noteTemp)
 		if err != nil {
 			return err
 		}
