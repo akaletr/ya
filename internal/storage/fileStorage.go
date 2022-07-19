@@ -64,7 +64,15 @@ func (fs fileStorage) Write(note model.Note) error {
 	}
 
 	noteJSON, err := json.Marshal(note)
+	if err != nil {
+		return err
+	}
 	_, err = file.Write(noteJSON)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write([]byte("\n"))
 	return err
 }
 
@@ -84,7 +92,9 @@ func (fs fileStorage) ReadAll(id string) (map[string]string, error) {
 		noteJSON := scanner.Text()
 		noteTemp := model.Note{}
 		err = json.Unmarshal([]byte(noteJSON), &noteTemp)
-
+		if err != nil {
+			return nil, err
+		}
 		result[noteTemp.Short] = noteTemp.Long
 	}
 
