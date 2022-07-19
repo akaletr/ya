@@ -15,24 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNew(t *testing.T) {
-	cfg := config.Config{
-		ServerAddress: "localhost:8080",
-	}
-
-	name := "create app test"
-	want := &app{
-		db:   storage.New(),
-		cfg:  cfg,
-		auth: auth.New(""),
-	}
-
-	t.Run(name, func(t *testing.T) {
-		app, _ := New(cfg)
-		assert.Equal(t, want, app)
-	})
-}
-
 func Test_app_AddURL(t *testing.T) {
 	tests := []struct {
 		name   string

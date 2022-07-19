@@ -107,6 +107,7 @@ func (fs fileStorage) WriteBatch(data []model.DataBatchItem) error {
 	return e
 }
 
+// TODO придумать как менять данные в файле
 func (fs fileStorage) Delete(note model.Note) error {
 	return nil
 }
