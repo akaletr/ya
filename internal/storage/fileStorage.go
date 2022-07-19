@@ -24,14 +24,13 @@ func (fs fileStorage) Read(value string) (model.Note, error) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		noteJSON := scanner.Text()
-
 		noteTemp := model.Note{}
 		err = json.Unmarshal([]byte(noteJSON), &noteTemp)
 		if err != nil {
 			return model.Note{}, err
 		}
 
-		if noteTemp.ID == value {
+		if noteTemp.Short == value {
 			return noteTemp, nil
 		}
 	}
