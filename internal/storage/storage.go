@@ -6,50 +6,66 @@ import (
 )
 
 type storage struct {
-	db   map[string]string
-	byID map[string][]string
+	db   map[string]model.Note
+	byID map[string][]model.Note
 }
 
-func (s storage) Read(value string) (string, error) {
-	if url, ok := s.db[value]; ok {
-		return url, nil
+func (s storage) Read(value string) (model.Note, error) {
+	if note, ok := s.db[value]; ok {
+		return note, nil
 	}
 	err := errors.New("error: there is no url in database")
-	return "", err
+	return model.Note{}, err
 }
 
-func (s storage) Write(id, key, value string) error {
-	if _, ok := s.db[key]; ok {
+func (s storage) Write(note model.Note) error {
+	if _, ok := s.db[note.Short]; ok {
 		return NewError(CONFLICT, "conflict")
 	}
 
-	s.db[key] = value
-	if s.byID[id] == nil {
-		s.byID[id] = []string{}
+	s.db[note.Short] = note
+	if s.byID[note.ID] == nil {
+		s.byID[note.ID] = []model.Note{}
 	}
-	s.byID[id] = append(s.byID[id], key)
+	s.byID[note.ID] = append(s.byID[note.ID], note)
 	return nil
 }
 
 func (s storage) WriteBatch(data []model.DataBatchItem) error {
 	for _, item := range data {
-		s.db[item.Short] = item.Long
-		if s.byID[item.ID] == nil {
-			s.byID[item.ID] = []string{}
+		note := model.Note{
+			ID:          item.ID,
+			Short:       item.Short,
+			Long:        item.Long,
+			Correlation: item.Correlation,
+			Deleted:     false,
 		}
-		s.byID[item.ID] = append(s.byID[item.ID], item.Short)
+		s.db[item.Short] = note
+		if s.byID[item.ID] == nil {
+			s.byID[item.ID] = []model.Note{}
+		}
+		s.byID[item.ID] = append(s.byID[item.ID], note)
 	}
 	return nil
 }
 func (s storage) ReadAll(id string) (map[string]string, error) {
-	if keys, ok := s.byID[id]; ok {
+	if notes, ok := s.byID[id]; ok {
 		result := make(map[string]string)
-		for _, key := range keys {
-			result[key] = s.db[key]
+		for _, note := range notes {
+			result[note.Short] = s.db[note.Short].Long
 		}
 		return result, nil
 	}
 	return nil, errors.New("no data")
+}
+
+func (s storage) Delete(note model.Note) error {
+	if s.db[note.Short].ID == note.ID {
+		noteTemp := s.db[note.Short]
+		noteTemp.Deleted = true
+		s.db[note.Short] = noteTemp
+	}
+	return nil
 }
 
 func (s storage) Start() error {
@@ -62,7 +78,7 @@ func (s storage) Ping() error {
 
 func New() Storage {
 	return &storage{
-		db:   make(map[string]string),
-		byID: map[string][]string{},
+		db:   make(map[string]model.Note),
+		byID: map[string][]model.Note{},
 	}
 }

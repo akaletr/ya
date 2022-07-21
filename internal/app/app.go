@@ -1,6 +1,12 @@
 package app
 
 import (
+	"cmd/shortener/main.go/internal/auth"
+	"cmd/shortener/main.go/internal/config"
+	"cmd/shortener/main.go/internal/gziper"
+	"cmd/shortener/main.go/internal/model"
+	"cmd/shortener/main.go/internal/storage"
+	"cmd/shortener/main.go/internal/workerpool"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,12 +18,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"cmd/shortener/main.go/internal/auth"
-	"cmd/shortener/main.go/internal/config"
-	"cmd/shortener/main.go/internal/gziper"
-	"cmd/shortener/main.go/internal/model"
-	"cmd/shortener/main.go/internal/storage"
-
 	"github.com/go-chi/chi/v5"
 )
 
@@ -25,21 +25,26 @@ type app struct {
 	db   storage.Storage
 	cfg  config.Config
 	auth auth.Auth
+	pool *workerpool.Pool
 }
 
 // GetURL возвращает в ответе реальный url
 func (app *app) GetURL(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "key")
 
-	long, err := app.db.Read(key)
+	note, err := app.db.Read(key)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Location", long)
+	if note.Deleted {
+		w.WriteHeader(http.StatusGone)
+		return
+	}
+	w.Header().Set("Location", note.Long)
 	w.WriteHeader(http.StatusTemporaryRedirect)
-	_, err = w.Write([]byte(long))
+	_, err = w.Write([]byte(note.Long))
 	if err != nil {
 		log.Println(err)
 	}
@@ -78,8 +83,14 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := app.convertURLToKey(longBS)
-	err = app.db.Write(id, key, string(longBS))
+	short := app.convertURLToKey(longBS)
+
+	note := model.Note{
+		ID:    id,
+		Short: short,
+		Long:  string(longBS),
+	}
+	err = app.db.Write(note)
 	if err != nil {
 		e, ok := err.(*storage.Error)
 		if ok && e.Code == storage.CONFLICT {
@@ -93,7 +104,7 @@ func (app *app) AddURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
+	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, note.Short)
 
 	_, err = w.Write([]byte(shortURL))
 	if err != nil {
@@ -136,8 +147,13 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := app.convertURLToKey([]byte(data.URL))
-	err = app.db.Write(id, key, data.URL)
+	short := app.convertURLToKey([]byte(data.URL))
+	note := model.Note{
+		ID:    id,
+		Short: short,
+		Long:  data.URL,
+	}
+	err = app.db.Write(note)
 	if err != nil {
 		e, ok := err.(*storage.Error)
 		if ok && e.Code == storage.CONFLICT {
@@ -153,7 +169,7 @@ func (app *app) Shorten(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, key)
+	shortURL := fmt.Sprintf("%s/%s", app.cfg.BaseURL, short)
 
 	resp := model.ShortenerResponse{Result: shortURL}
 	respJSON, err := json.Marshal(resp)
@@ -299,6 +315,49 @@ func (app *app) Batch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (app *app) Delete(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie("user")
+	if err != nil {
+		c = &http.Cookie{}
+	}
+
+	id, err := app.auth.GetID(c)
+	if err != nil {
+		log.Println(err)
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	defer func() {
+		err = r.Body.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var data []string
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	for _, item := range data {
+		note := model.Note{
+			ID:    id,
+			Short: item,
+		}
+
+		job := workerpool.NewJob(app.db.Delete, note)
+		app.pool.AddJob(job)
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
 // Start запускает сервер
 func (app *app) Start() error {
 	// подготавливаем базу к работе
@@ -318,11 +377,14 @@ func (app *app) Start() error {
 	router.Post("/api/shorten/batch", app.Batch)
 	router.Get("/api/user/urls", app.GetAllURLs)
 	router.Get("/ping", app.DatabasePing)
+	router.Delete("/api/user/urls", app.Delete)
 
 	server := http.Server{
 		Addr:    app.cfg.ServerAddress,
 		Handler: router,
 	}
+
+	go app.pool.RunBackground()
 
 	return server.ListenAndServe()
 }
@@ -355,6 +417,7 @@ func New(cfg config.Config) (App, error) {
 			db:   db,
 			cfg:  cfg,
 			auth: auth.New(cfg.SecretKey),
+			pool: workerpool.NewPool(2),
 		}, nil
 	}
 
@@ -363,6 +426,7 @@ func New(cfg config.Config) (App, error) {
 			db:   storage.NewFileStorage(cfg.FileStoragePath),
 			cfg:  cfg,
 			auth: auth.New(cfg.SecretKey),
+			pool: workerpool.NewPool(2),
 		}, nil
 	}
 
@@ -370,5 +434,6 @@ func New(cfg config.Config) (App, error) {
 		db:   storage.New(),
 		cfg:  cfg,
 		auth: auth.New(cfg.SecretKey),
+		pool: workerpool.NewPool(2),
 	}, nil
 }
